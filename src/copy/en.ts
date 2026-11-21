@@ -14,6 +14,49 @@ export const en = {
     back: "Back",
     comingIn: (phase: number) => `Coming in Build Phase ${phase}`,
   },
+  /** Spotlight tours: each step points at one part of a page (`data-tour` on that element). */
+  tour: {
+    label: "Page tour",
+    stepOf: (n: number, total: number) => `Step ${n} of ${total}`,
+    next: "Next",
+    back: "Back",
+    skip: "Skip tour",
+    done: "Done",
+    pages: {
+      today: [
+        {
+          target: "today-summary",
+          title: "Your day at a glance",
+          body: "The ring fills as you tick habits. “Left before bed” tells you what's still to do, and “Next” shows what to pick up first.",
+        },
+        {
+          target: "today-date",
+          title: "Look at another day",
+          body: "Use the arrows or the calendar to open an earlier day and fill it in. Days that haven't happened yet can't be ticked.",
+        },
+        {
+          target: "today-checklist",
+          title: "Tick as you go",
+          body: "Tap a circle to tick a habit. Amounts like steps or water fill the circle as you add to them, so partial progress counts. Evening and night habits open when their time comes.",
+        },
+        {
+          target: "today-daytype",
+          title: "Not a normal day?",
+          body: "Mark the day as Rest, Sick or Travel. Your streak stays safe and nothing counts against your phase.",
+        },
+        {
+          target: "today-numbers",
+          title: "Your numbers",
+          body: "Type steps, water, sleep, mood and more here. Some of them tick a habit for you: steps fill Daily steps, and the time you woke up fills Wake up on time.",
+        },
+        {
+          target: "today-day",
+          title: "Your day, hour by hour",
+          body: "Sleep, the things you logged and the gaps in between, in time order. Tap + Log to add something you did, or Fill the gap.",
+        },
+      ],
+    },
+  },
   /** The ⓘ sheet at the top of every page: what the page is for, how it works, what changes what. */
   help: {
     button: "About this page",

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { copy } from "@/copy";
 import { cn } from "@/lib/utils";
+import { hasTour, useTourStore } from "@/stores/tour-store";
 
 const h = copy.help;
 type PageKey = keyof typeof h.pages;
@@ -24,12 +25,13 @@ const PAGE_BY_PATH: Record<string, PageKey> = {
 };
 
 /**
- * The ⓘ button (icon only). It opens a sheet that explains the page you're on: what it's for,
- * how it works, what changes what, and where the data goes next.
+ * The ⓘ button (icon only). On pages with a spotlight tour it starts the tour; on the others it
+ * opens a sheet: what the page is for, how it works, what changes what, where the data goes.
  */
 export function PageHelpButton({ className }: { className?: string }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const startTour = useTourStore((s) => s.start);
   const key = PAGE_BY_PATH[pathname.replace(/\/$/, "") || "/"];
   if (!key) return null;
   const page = h.pages[key];
@@ -41,7 +43,8 @@ export function PageHelpButton({ className }: { className?: string }) {
         size="icon"
         aria-label={h.button}
         aria-haspopup="dialog"
-        onClick={() => setOpen(true)}
+        // Pages with a tour start it; the others show their explanation as a sheet.
+        onClick={() => (hasTour(key) ? startTour(key) : setOpen(true))}
         className={cn("text-muted-foreground hover:text-foreground", className)}
       >
         <Info aria-hidden className="size-5" />

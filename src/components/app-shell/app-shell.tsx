@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { copy } from "@/copy";
 import { PwaRegister } from "@/components/pwa";
+import { TourOverlay } from "@/components/tour-overlay";
 import { BottomTabs } from "./bottom-tabs";
 import { PageHelpButton } from "./page-help";
 import { PhoneBrand } from "./phone-brand";
@@ -37,6 +38,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
       <BottomTabs className="fixed inset-x-0 bottom-0 z-30 md:hidden" />
       <PwaRegister />
+      <TourOverlay />
     </div>
   );
 }

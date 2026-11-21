@@ -62,6 +62,8 @@ interface PanelProps {
   bodyClassName?: string;
   /** For in-page links, e.g. "#health-plan". */
   id?: string;
+  /** Marks the card for the page tour (`data-tour`). */
+  tour?: string;
   children: ReactNode;
 }
 
@@ -75,6 +77,7 @@ export function Panel({
   className,
   bodyClassName,
   id,
+  tour,
   children,
 }: PanelProps) {
   // The title names the card, so screen readers can jump to e.g. "What you did today".
@@ -82,6 +85,7 @@ export function Panel({
   return (
     <section
       id={id}
+      data-tour={tour}
       aria-labelledby={title ? titleId : undefined}
       className={cn(
         "min-w-0 rounded-2xl border bg-card p-5 text-card-foreground",

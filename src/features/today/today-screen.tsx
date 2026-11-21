@@ -330,7 +330,10 @@ export function TodayScreen() {
         )}
         <Cell span={12} fullOnTablet>
           {/* Phones: one summary card with two small tiles inside. Laptop: a row of 4 tiles. */}
-          <div className="rounded-2xl border bg-card p-4 md:rounded-none md:border-0 md:bg-transparent md:p-0">
+          <div
+            data-tour="today-summary"
+            className="rounded-2xl border bg-card p-4 md:rounded-none md:border-0 md:bg-transparent md:p-0"
+          >
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:gap-5">
               <div className="col-span-2 flex items-center gap-4 md:col-span-1 md:rounded-xl md:border md:bg-card md:p-4">
                 <ProgressRing
@@ -466,6 +469,7 @@ export function TodayScreen() {
 
         <Panel
           span={8}
+          tour="today-checklist"
           title={t.checklist.title}
           subtitle={t.checklist.subtitle}
           className="overflow-hidden"
@@ -508,7 +512,7 @@ export function TodayScreen() {
         </Panel>
 
         <Cell span={4} className="flex flex-col gap-4 md:col-span-2 xl:col-span-4">
-          <Panel title={t.dayType.title} subtitle={t.dayType.hint}>
+          <Panel tour="today-daytype" title={t.dayType.title} subtitle={t.dayType.hint}>
             <SegmentedControl<DayType>
               label={t.dayType.title}
               options={DAY_TYPES}

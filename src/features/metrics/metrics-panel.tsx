@@ -115,7 +115,7 @@ export function MetricsPanel({
         : null;
 
   return (
-    <Panel span={span} title={t.title} subtitle={t.subtitle}>
+    <Panel span={span} tour="today-numbers" title={t.title} subtitle={t.subtitle}>
       {error && (
         <p role="alert" className="mb-3 text-sm text-destructive">
           {error}

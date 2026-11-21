@@ -19,7 +19,10 @@ export function DateNav({
   onChange: (date: IsoDate) => void;
 }) {
   return (
-    <div className="flex items-center rounded-xl border bg-card p-0.5 shadow-xs">
+    <div
+      data-tour="today-date"
+      className="flex items-center rounded-xl border bg-card p-0.5 shadow-xs"
+    >
       <Button
         variant="ghost"
         size="icon"

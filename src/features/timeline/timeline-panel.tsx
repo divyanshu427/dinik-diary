@@ -128,6 +128,7 @@ export function TimelinePanel({
   return (
     <Panel
       span={span}
+      tour="today-day"
       title={t.title}
       subtitle={t.subtitle(clock(0), formatDuration(timeline.placedMinutes), dayCount)}
       action={
