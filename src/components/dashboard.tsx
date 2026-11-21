@@ -60,6 +60,8 @@ interface PanelProps {
   action?: ReactNode;
   className?: string;
   bodyClassName?: string;
+  /** For in-page links, e.g. "#health-plan". */
+  id?: string;
   children: ReactNode;
 }
 
@@ -72,12 +74,14 @@ export function Panel({
   action,
   className,
   bodyClassName,
+  id,
   children,
 }: PanelProps) {
   // The title names the card, so screen readers can jump to e.g. "What you did today".
   const titleId = useId();
   return (
     <section
+      id={id}
       aria-labelledby={title ? titleId : undefined}
       className={cn(
         "min-w-0 rounded-2xl border bg-card p-5 text-card-foreground",

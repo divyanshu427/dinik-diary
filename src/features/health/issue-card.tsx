@@ -1,15 +1,9 @@
 "use client";
 
-import { ChevronRight, Ellipsis, Pencil, Trash2 } from "lucide-react";
+import { Activity, ChevronRight, CircleCheck, Pencil, Trash2, TrendingDown } from "lucide-react";
+import { ActionMenu } from "@/components/action-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { copy } from "@/copy";
 import type { Concern, ConcernUpdate, Habit } from "@/data/schema";
 import {
@@ -118,42 +112,55 @@ export function IssueCard({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <Button size="sm" onClick={onCheckIn}>
+          <Button size="sm" onClick={onCheckIn} className="max-sm:hidden">
             {i18.checkIn}
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={<Button variant="ghost" size="icon-sm" aria-label={i18.more(issue.title)} />}
-            >
-              <Ellipsis aria-hidden />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-auto min-w-48">
-              <DropdownMenuItem onClick={onEdit}>
-                <Pencil aria-hidden />
-                {i18.edit}
-              </DropdownMenuItem>
-              {issue.status !== "improving" && (
-                <DropdownMenuItem onClick={() => onStatus("improving")}>
-                  {i18.markImproving}
-                </DropdownMenuItem>
-              )}
-              {issue.status !== "active" && (
-                <DropdownMenuItem onClick={() => onStatus("active")}>
-                  {i18.markActive}
-                </DropdownMenuItem>
-              )}
-              {issue.status !== "resolved" && (
-                <DropdownMenuItem onClick={() => onStatus("resolved")}>
-                  {i18.markResolved}
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem variant="destructive" onClick={onDelete}>
-                <Trash2 aria-hidden />
-                {i18.delete}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <ActionMenu
+            label={i18.more(issue.title)}
+            title={issue.title}
+            subtitle={t.kinds[issue.kind]}
+            items={[
+              { label: i18.edit, description: i18.editHint, icon: Pencil, onSelect: onEdit },
+              ...(issue.status !== "improving"
+                ? [
+                    {
+                      label: i18.markImproving,
+                      description: i18.improvingHint,
+                      icon: TrendingDown,
+                      onSelect: () => onStatus("improving"),
+                    },
+                  ]
+                : []),
+              ...(issue.status !== "active"
+                ? [
+                    {
+                      label: i18.markActive,
+                      description: i18.activeHint,
+                      icon: Activity,
+                      onSelect: () => onStatus("active"),
+                    },
+                  ]
+                : []),
+              ...(issue.status !== "resolved"
+                ? [
+                    {
+                      label: i18.markResolved,
+                      description: i18.resolvedHint,
+                      icon: CircleCheck,
+                      onSelect: () => onStatus("resolved"),
+                    },
+                  ]
+                : []),
+              {
+                label: i18.delete,
+                description: i18.deleteHint,
+                icon: Trash2,
+                destructive: true,
+                separatorBefore: true,
+                onSelect: onDelete,
+              },
+            ]}
+          />
         </div>
       </div>
 
@@ -239,6 +246,11 @@ export function IssueCard({
           ))}
         </dl>
       )}
+
+      {/* Phones: one big button (the header has a small one on wider screens). */}
+      <Button onClick={onCheckIn} className="h-12 w-full rounded-xl text-base sm:hidden">
+        {i18.checkIn}
+      </Button>
 
       <details className="group border-t pt-3">
         <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">

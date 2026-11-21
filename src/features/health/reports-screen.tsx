@@ -73,17 +73,25 @@ export function ReportsScreen() {
 
   const header = (eyebrow?: string) => (
     <PageHeader
+      phoneBack={{ href: "/more", label: copy.pages.more.back }}
       eyebrow={eyebrow}
       title={r.title}
       subtitle={r.subtitle}
       actions={
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 max-md:grid max-md:w-full max-md:grid-cols-2 max-md:gap-3">
           <HealthTabs />
-          <Button variant="outline" onClick={() => setAddingValue(true)}>
+          <Button
+            variant="outline"
+            onClick={() => setAddingValue(true)}
+            className="max-md:h-12 max-md:rounded-xl max-md:text-base"
+          >
             <Plus aria-hidden />
             {r.addValue}
           </Button>
-          <Button onClick={() => setDialog({ report: null })}>
+          <Button
+            onClick={() => setDialog({ report: null })}
+            className="max-md:h-12 max-md:rounded-xl max-md:text-base"
+          >
             <Plus aria-hidden />
             {r.add}
           </Button>

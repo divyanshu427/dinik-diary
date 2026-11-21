@@ -16,12 +16,15 @@ export function PainScale({
   value,
   onChange,
   disabled,
+  large,
   className,
 }: {
   label: string;
   value: number | null;
   onChange: (value: number) => void;
   disabled?: boolean;
+  /** Big buttons, 6 per row on phones (the check-in sheet). */
+  large?: boolean;
   className?: string;
 }) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -45,7 +48,12 @@ export function PainScale({
     <div
       role="radiogroup"
       aria-label={label}
-      className={cn("grid grid-cols-11 gap-1", disabled && "opacity-60", className)}
+      className={cn(
+        "grid gap-1",
+        large ? "grid-cols-6 gap-2 sm:grid-cols-11 sm:gap-1.5" : "grid-cols-11",
+        disabled && "opacity-60",
+        className,
+      )}
     >
       {LEVELS.map((n) => {
         const selected = n === value;
@@ -65,7 +73,8 @@ export function PainScale({
             onClick={() => onChange(n)}
             onKeyDown={(e) => onKeyDown(e, n)}
             className={cn(
-              "h-8 min-w-0 rounded-md border text-xs font-medium tabular-nums transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+              "min-w-0 border font-medium tabular-nums transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+              large ? "h-12 rounded-xl text-base sm:h-10" : "h-8 rounded-md text-xs",
               selected
                 ? n >= 8
                   ? "border-destructive bg-destructive/15 font-semibold text-destructive"

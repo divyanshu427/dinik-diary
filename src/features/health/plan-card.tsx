@@ -245,18 +245,21 @@ export function PlanCard({
                           )}
                         </div>
                       </div>
-                      <div className="flex shrink-0 gap-2 pl-6 sm:pl-0">
+                      {/* Phones: two big buttons side by side. */}
+                      <div className="flex shrink-0 gap-2 max-sm:grid max-sm:grid-cols-2 sm:pl-0">
                         <Button
                           size="sm"
                           variant={s.kind === "see-doctor" ? "outline" : "default"}
                           onClick={() => run(approve(s))}
+                          className="max-sm:h-11 max-sm:text-base"
                         >
                           {actionLabel(s)}
                         </Button>
                         {s.kind !== "see-doctor" && (
                           <Button
                             size="sm"
-                            variant="ghost"
+                            variant="outline"
+                            className="max-sm:h-11 max-sm:text-base"
                             onClick={() => run(editor.dismiss.mutateAsync([s.issueId, s.key]))}
                           >
                             {p.notNow}

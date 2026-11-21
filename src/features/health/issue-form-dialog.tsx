@@ -172,7 +172,12 @@ export function IssueFormDialog({
           </FormField>
 
           <FormField label={f.severity}>
-            <PainScale label={f.severity} value={v.severity} onChange={(n) => set("severity", n)} />
+            <PainScale
+              large
+              label={f.severity}
+              value={v.severity}
+              onChange={(n) => set("severity", n)}
+            />
           </FormField>
 
           {mode === "create" && (

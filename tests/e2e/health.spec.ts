@@ -154,6 +154,25 @@ test.describe("health", () => {
     await expect(suggestion(page, "see-doctor")).toBeVisible();
   });
 
+  test("check-in compares with last time; the tile opens a check-in", async ({ page }) => {
+    await addIssue(page, "Eye strain", 5);
+    await save(page, "Eye strain");
+    await checkInYesterday(page, "Eye strain", 5);
+
+    await page.getByTestId("health-tiles").getByRole("button", { name: "Check in again" }).click();
+    const d = page.getByRole("dialog");
+    await expect(d.getByRole("heading", { name: "Eye strain" })).toBeVisible();
+    await d.getByRole("radio", { name: /^5 –/ }).click();
+    await expect(d.getByTestId("check-in-summary")).toHaveText(
+      "5 · Moderate. Same as your last check-in.",
+    );
+    await d.getByRole("radio", { name: /^3 –/ }).click();
+    await expect(d.getByTestId("check-in-summary")).toContainText("2 better than your last");
+    await d.getByRole("button", { name: "Save check-in" }).click();
+    await expect(d).toHaveCount(0);
+    await expect(issue(page, "Eye strain").getByTestId("issue-latest")).toHaveText("3/10");
+  });
+
   test("the old Concerns link opens Health", async ({ page }) => {
     await page.goto("/concerns");
     await expect(page).toHaveURL(/\/health$/);

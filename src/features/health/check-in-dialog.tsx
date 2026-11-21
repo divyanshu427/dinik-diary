@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -14,10 +15,19 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { copy } from "@/copy";
 import type { Concern, ConcernUpdate } from "@/data/schema";
-import type { IsoDate } from "@/lib/core";
+import { parseIsoDate, type IsoDate } from "@/lib/core";
 import { PainScale } from "./pain-scale";
 
 const t = copy.pages.health.checkIn;
+const dayFormat = new Intl.DateTimeFormat("en-IN", {
+  weekday: "long",
+  day: "numeric",
+  month: "short",
+});
+const longDate = (d: IsoDate) => {
+  const { year, month, day } = parseIsoDate(d);
+  return dayFormat.format(new Date(year, month - 1, day));
+};
 
 /** Record how an issue is on a day (today, or an earlier day). */
 export function CheckInDialog({
@@ -39,6 +49,9 @@ export function CheckInDialog({
   const [note, setNote] = useState(existing(today)?.note ?? "");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // The last check-in before this day, to say "same as last time" or "2 better".
+  const previous = [...checkIns].filter((c) => c.date < date).at(-1)?.severity;
 
   const pickDate = (d: IsoDate) => {
     setDate(d);
@@ -64,21 +77,38 @@ export function CheckInDialog({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{t.title(issue.title)}</DialogTitle>
+          <p className="text-sm text-muted-foreground">{t.eyebrow(longDate(date))}</p>
+          <DialogTitle>{issue.title}</DialogTitle>
+          <DialogDescription className="sr-only">{t.title(issue.title)}</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} noValidate className="grid gap-4">
-          <FormField label={t.date} htmlFor="check-in-date">
-            <Input
-              id="check-in-date"
-              type="date"
-              value={date}
-              max={today}
-              onChange={(e) => e.target.value && pickDate(e.target.value)}
-            />
-          </FormField>
-          <FormField label={t.levelOn(issue.title)}>
-            <PainScale label={t.levelOn(issue.title)} value={level} onChange={setLevel} />
-          </FormField>
+          <div>
+            <p className="mb-2 text-sm font-semibold">{t.howNow}</p>
+            <PainScale large label={t.levelOn(issue.title)} value={level} onChange={setLevel} />
+            <p aria-hidden className="mt-1.5 flex justify-between text-xs text-muted-foreground">
+              {t.bands.map((b) => (
+                <span key={b}>{b}</span>
+              ))}
+            </p>
+            {level !== null && (
+              <p
+                aria-live="polite"
+                className="mt-3 rounded-xl bg-muted/60 px-3 py-2 text-sm"
+                data-testid="check-in-summary"
+              >
+                <strong className="font-semibold">
+                  {level} · {copy.pages.health.scaleWords[level]}.
+                </strong>{" "}
+                {previous === undefined
+                  ? t.firstCheckIn
+                  : level === previous
+                    ? t.same
+                    : level < previous
+                      ? t.better(previous - level)
+                      : t.worse(level - previous)}
+              </p>
+            )}
+          </div>
           <FormField label={t.note} htmlFor="check-in-note">
             <Textarea
               id="check-in-note"
@@ -88,6 +118,17 @@ export function CheckInDialog({
               placeholder={t.notePlaceholder}
             />
           </FormField>
+          <FormField label={t.date} htmlFor="check-in-date">
+            <Input
+              id="check-in-date"
+              type="date"
+              value={date}
+              max={today}
+              onChange={(e) => e.target.value && pickDate(e.target.value)}
+              className="max-w-48"
+            />
+          </FormField>
+          <p className="text-xs text-muted-foreground">{t.doctorHint}</p>
           {error && (
             <p role="alert" className="text-sm font-medium text-destructive">
               {error}

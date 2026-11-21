@@ -1,6 +1,6 @@
 "use client";
 
-import { HeartPulse, Plus, ShieldAlert } from "lucide-react";
+import { ChevronRight, HeartPulse, Plus, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { Cell, Dashboard, Panel } from "@/components/dashboard";
@@ -29,6 +29,7 @@ import { formatNumber } from "@/features/today/format";
 import { useHealthEditor } from "@/hooks/use-health";
 import { useLabValues } from "@/hooks/use-reports";
 import { addDays, isActiveAdjustment, labSeries, parseIsoDate, type IsoDate } from "@/lib/core";
+import { cn } from "@/lib/utils";
 import { CheckInDialog } from "./check-in-dialog";
 import { HealthTabs } from "./health-tabs";
 import { IssueCard } from "./issue-card";
@@ -117,13 +118,17 @@ export function HealthScreen() {
   return (
     <>
       <PageHeader
+        phoneBack={{ href: "/more", label: copy.pages.more.back }}
         eyebrow={t.eyebrow(active.length, checkedInToday)}
         title={t.title}
         subtitle={t.subtitle}
         actions={
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-col gap-3 max-md:w-full md:flex-row md:flex-wrap md:items-center md:gap-2">
             <HealthTabs />
-            <Button onClick={() => setForm({ mode: "create" })}>
+            <Button
+              onClick={() => setForm({ mode: "create" })}
+              className="max-md:h-12 max-md:rounded-xl max-md:text-base"
+            >
               <Plus aria-hidden />
               {t.add}
             </Button>
@@ -159,11 +164,26 @@ export function HealthScreen() {
       ) : (
         <Dashboard>
           <Cell span={12} fullOnTablet>
-            <Tiles model={model} checkedInToday={checkedInToday} />
+            <Tiles
+              model={model}
+              checkedInToday={checkedInToday}
+              onCheckIn={() => {
+                const next =
+                  active.find((i) => !model.checkInsFor(i.id).some((c) => c.date === today)) ??
+                  active[0];
+                if (next) setCheckInFor(next);
+              }}
+            />
           </Cell>
 
-          <Cell span={8} fullOnTablet className="flex flex-col gap-4 xl:gap-5">
-            <Panel title={t.plan.title} subtitle={t.plan.subtitle}>
+          {/* Phones: both columns melt into one list, in the mock-up's order (see `order-*`). */}
+          <Cell span={8} fullOnTablet className="flex flex-col gap-4 max-md:contents xl:gap-5">
+            <Panel
+              title={t.plan.title}
+              subtitle={t.plan.subtitle}
+              className="scroll-mt-6 max-md:order-1"
+              id="health-plan"
+            >
               <PlanCard
                 model={model}
                 editor={editor}
@@ -186,7 +206,7 @@ export function HealthScreen() {
                 }
               />
             </Panel>
-            <div className="grid gap-4 xl:gap-5 2xl:grid-cols-2">
+            <div className="grid gap-4 max-md:order-2 xl:gap-5 2xl:grid-cols-2">
               {active.map((issue) => (
                 <IssueCard
                   key={issue.id}
@@ -205,11 +225,14 @@ export function HealthScreen() {
             </div>
           </Cell>
 
-          <Cell span={4} className="flex flex-col gap-4 md:col-span-2 xl:col-span-4 xl:gap-5">
-            <OutOfRange />
-            <Journal model={model} />
-            <SafetyPanel />
-            <Panel title={t.resolved.title}>
+          <Cell
+            span={4}
+            className="flex flex-col gap-4 max-md:contents md:col-span-2 xl:col-span-4 xl:gap-5"
+          >
+            <OutOfRange className="max-md:order-3" />
+            <Journal model={model} className="max-md:order-5" />
+            <SafetyPanel className="max-md:order-4" />
+            <Panel title={t.resolved.title} className="max-md:order-6">
               {model.resolved.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{t.resolved.empty}</p>
               ) : (
@@ -301,7 +324,15 @@ export function HealthScreen() {
   );
 }
 
-function Tiles({ model, checkedInToday }: { model: HealthModel; checkedInToday: number }) {
+function Tiles({
+  model,
+  checkedInToday,
+  onCheckIn,
+}: {
+  model: HealthModel;
+  checkedInToday: number;
+  onCheckIn: () => void;
+}) {
   const { today, active } = model;
   const weekAgo = addDays(today, -6);
   let worst: { title: string; level: number } | null = null;
@@ -316,6 +347,8 @@ function Tiles({ model, checkedInToday }: { model: HealthModel; checkedInToday: 
     (n, i) => n + i.adjustments.filter((a) => isActiveAdjustment(a, today)).length,
     0,
   );
+  const waiting = model.suggestions.length;
+  const allIn = active.length > 0 && checkedInToday === active.length;
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:gap-5" data-testid="health-tiles">
       <StatTile
@@ -323,28 +356,62 @@ function Tiles({ model, checkedInToday }: { model: HealthModel; checkedInToday: 
         value={String(active.length)}
         note={t.tiles.activeNote(active.filter((i) => i.status === "improving").length)}
       />
-      <StatTile
-        label={t.tiles.checkedIn}
-        value={`${checkedInToday}/${active.length}`}
-        note={t.tiles.checkedInNote}
-        tone={active.length > 0 && checkedInToday === active.length ? "positive" : "neutral"}
-      />
+      <div className="rounded-xl border bg-card p-4 text-card-foreground">
+        <p className="text-sm text-muted-foreground">{t.tiles.checkedIn}</p>
+        <p className="mt-1 font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
+          {`${checkedInToday}/${active.length}`}
+        </p>
+        {active.length > 0 ? (
+          <button
+            type="button"
+            onClick={onCheckIn}
+            className={cn(
+              "mt-1 inline-flex items-center gap-0.5 rounded text-sm font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+              allIn ? "text-success" : "text-primary",
+            )}
+          >
+            {allIn ? t.tiles.checkInAgain : t.tiles.checkInNow}
+            <ChevronRight aria-hidden className="size-4" />
+          </button>
+        ) : (
+          <p className="mt-1 text-sm text-muted-foreground">{t.tiles.checkedInNote}</p>
+        )}
+      </div>
       <StatTile
         label={t.tiles.worst}
         value={worst ? t.scale(worst.level) : t.tiles.none}
         note={worst ? t.tiles.worstNote(worst.title) : undefined}
         tone={worst && worst.level >= 8 ? "warning" : "neutral"}
       />
-      <StatTile
-        label={t.tiles.plan}
-        value={String(running)}
-        note={t.tiles.planNote(model.suggestions.length)}
-      />
+      {/* Waiting suggestions: an amber tile that jumps to the plan. */}
+      <a
+        href="#health-plan"
+        className={cn(
+          "rounded-xl border p-4 text-card-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+          waiting > 0 ? "border-warning/50 bg-warning/10" : "pointer-events-none bg-card",
+        )}
+        aria-disabled={waiting === 0 || undefined}
+        tabIndex={waiting === 0 ? -1 : undefined}
+      >
+        <p className="text-sm text-muted-foreground">{t.tiles.plan}</p>
+        <p className="mt-1 font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
+          {String(running)}
+        </p>
+        <p
+          className={cn(
+            "mt-1 flex items-center gap-0.5 text-sm font-medium",
+            waiting > 0 ? "text-warning" : "text-muted-foreground",
+          )}
+        >
+          {t.tiles.planNote(waiting)}
+          {waiting > 0 && <ChevronRight aria-hidden className="size-4" />}
+        </p>
+      </a>
     </div>
   );
 }
 
-function Journal({ model }: { model: HealthModel }) {
+function Journal({ model, className }: { model: HealthModel; className?: string }) {
   const notes = [
     ...model.issues.flatMap((issue) =>
       model
@@ -366,7 +433,7 @@ function Journal({ model }: { model: HealthModel }) {
   ].sort((a, b) => b.date.localeCompare(a.date));
 
   return (
-    <Panel title={t.journal.title} subtitle={t.journal.subtitle}>
+    <Panel title={t.journal.title} subtitle={t.journal.subtitle} className={className}>
       {notes.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t.journal.empty}</p>
       ) : (
@@ -386,14 +453,14 @@ function Journal({ model }: { model: HealthModel }) {
 }
 
 /** The latest report values outside their normal range (from Health → Reports and values). */
-function OutOfRange() {
+function OutOfRange({ className }: { className?: string }) {
   const values = useLabValues();
   const series = labSeries(values.data ?? []);
   if (series.length === 0) return null;
   const off = series.filter((s) => s.status === "low" || s.status === "high");
   const o = t.reports.outOfRangePanel;
   return (
-    <Panel title={o.title}>
+    <Panel title={o.title} className={className}>
       {off.length === 0 ? (
         <p className="text-sm text-muted-foreground">{o.empty}</p>
       ) : (
@@ -419,10 +486,10 @@ function OutOfRange() {
   );
 }
 
-function SafetyPanel() {
+function SafetyPanel({ className }: { className?: string }) {
   const s = t.safety;
   return (
-    <Panel title={s.title}>
+    <Panel title={s.title} className={className}>
       <div className="flex gap-2.5 text-sm">
         <ShieldAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-warning" />
         <div className="flex flex-col gap-2">
@@ -435,6 +502,12 @@ function SafetyPanel() {
           </ul>
         </div>
       </div>
+      <p
+        role="note"
+        className="mt-3 rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
+      >
+        <strong className="font-semibold">{s.urgentLead}</strong> {s.urgent}
+      </p>
     </Panel>
   );
 }
