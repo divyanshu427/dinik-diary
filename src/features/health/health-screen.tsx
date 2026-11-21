@@ -125,6 +125,7 @@ export function HealthScreen() {
           <div className="flex flex-col gap-3 max-md:w-full md:flex-row md:flex-wrap md:items-center md:gap-2">
             <HealthTabs />
             <Button
+              data-tour="health-add"
               onClick={() => setForm({ mode: "create" })}
               className="max-md:h-12 max-md:rounded-xl max-md:text-base"
             >
@@ -182,6 +183,7 @@ export function HealthScreen() {
               subtitle={t.plan.subtitle}
               className="scroll-mt-6 max-md:order-1"
               id="health-plan"
+              tour="health-plan"
             >
               <PlanCard
                 model={model}
@@ -349,7 +351,11 @@ function Tiles({
   const waiting = model.suggestions.length;
   const allIn = active.length > 0 && checkedInToday === active.length;
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:gap-5" data-testid="health-tiles">
+    <div
+      className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:gap-5"
+      data-testid="health-tiles"
+      data-tour="health-tiles"
+    >
       <StatTile
         label={t.tiles.active}
         value={String(active.length)}
@@ -488,7 +494,7 @@ function OutOfRange({ className }: { className?: string }) {
 function SafetyPanel({ className }: { className?: string }) {
   const s = t.safety;
   return (
-    <Panel title={s.title} className={className}>
+    <Panel title={s.title} className={className} tour="health-safety">
       <div className="flex gap-2.5 text-sm">
         <ShieldAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-warning" />
         <div className="flex flex-col gap-2">

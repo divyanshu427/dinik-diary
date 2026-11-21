@@ -489,7 +489,10 @@ export function HabitsScreen() {
         subtitle={t.subtitle}
         actions={
           // Phones: two big buttons side by side. Wider: a row of normal buttons.
-          <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:gap-2">
+          <div
+            data-tour="habits-add"
+            className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:gap-2"
+          >
             <Button
               className="max-sm:h-12 max-sm:rounded-xl max-sm:text-base"
               onClick={() =>
@@ -530,7 +533,10 @@ export function HabitsScreen() {
         <Dashboard>
           <Cell span={12} fullOnTablet>
             {/* Summary tiles: 2 × 2 on phones, 4 in a row from laptop width. */}
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:gap-5">
+            <div
+              data-tour="habits-tiles"
+              className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:gap-5"
+            >
               <StatTile
                 label={t.kpi.active}
                 value={String(activeHabits.length)}
@@ -563,6 +569,7 @@ export function HabitsScreen() {
           <Cell span={12} fullOnTablet>
             {/* Phones: one row you can swipe sideways. Wider screens: wraps. */}
             <div
+              data-tour="habits-filters"
               role="group"
               aria-label={t.filters.label}
               className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0"

@@ -145,7 +145,12 @@ export function PhasesScreen() {
         subtitle={t.subtitle}
         inlineActions
         actions={
-          <Button variant="outline" onClick={() => setAddingPhase(true)} aria-label={t.addPhase}>
+          <Button
+            data-tour="phases-custom"
+            variant="outline"
+            onClick={() => setAddingPhase(true)}
+            aria-label={t.addPhase}
+          >
             <Plus aria-hidden />
             <span className="max-sm:hidden">{t.addPhase}</span>
             <span className="sm:hidden">{t.addPhaseShort}</span>
@@ -202,7 +207,12 @@ export function PhasesScreen() {
           ].map(
             ({ title, list, order }) =>
               list.length > 0 && (
-                <section key={title} aria-label={title} className={order}>
+                <section
+                  key={title}
+                  aria-label={title}
+                  className={order}
+                  data-tour={title === t.upNext ? "phases-upnext" : "phases-completed"}
+                >
                   <h2 className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                     {title}
                   </h2>
@@ -261,12 +271,13 @@ export function PhasesScreen() {
         >
           <Panel
             className="max-md:order-2"
+            tour="phases-chart"
             title={t.chart.title}
             subtitle={t.chart.subtitle(readiness.rules.windowDays, readiness.rules.threshold)}
           >
             <WindowChart days={readiness.days} threshold={readiness.rules.threshold} />
           </Panel>
-          <Panel className="max-md:order-5" title={t.rules.title}>
+          <Panel className="max-md:order-5" tour="phases-rules" title={t.rules.title}>
             <div id="how-phases-unlock" className="scroll-mt-28" />
             <ul className="flex list-disc flex-col gap-2 pl-5 text-sm">
               {t.rules
@@ -468,6 +479,7 @@ function ActivePhaseCard({
       aria-labelledby="current-phase-title"
       className="rounded-2xl border-2 border-primary/70 bg-card p-5 text-card-foreground"
       data-testid="current-phase"
+      data-tour="phases-current"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">{a.title}</p>
@@ -488,7 +500,7 @@ function ActivePhaseCard({
           : a.since(fmt(r.cycleStart ?? phase.history[0]?.date ?? ""), habitCount)}
       </p>
 
-      <div className="mt-5">
+      <div className="mt-5" data-tour="phases-progress">
         <div className="flex items-end justify-between gap-3">
           <div>
             <p className="text-sm whitespace-nowrap text-muted-foreground">
@@ -558,7 +570,7 @@ function ActivePhaseCard({
         )}
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center gap-2">
+      <div className="mt-5 flex flex-wrap items-center gap-2" data-tour="phases-actions">
         {windowDone ? (
           <>
             {repeatButton}

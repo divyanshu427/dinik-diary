@@ -103,6 +103,7 @@ export function PhaseSection(props: PhaseSectionProps) {
     <section
       ref={setNodeRef}
       aria-labelledby={labelId}
+      data-tour={props.isFirst ? "habits-phase" : undefined}
       className={cn(
         "relative overflow-hidden rounded-2xl border bg-card text-card-foreground transition-shadow",
         dropState === "allowed" && "ring-2 ring-primary",
@@ -265,6 +266,7 @@ function SortableHabitRow(props: RowProps) {
     <li
       ref={setNodeRef}
       style={style}
+      data-tour={props.isFirstHabit ? "habits-row" : undefined}
       className={cn(
         "flex items-start gap-2 bg-card py-1.5 pr-2 pl-1 sm:items-center",
         selected && "bg-accent",

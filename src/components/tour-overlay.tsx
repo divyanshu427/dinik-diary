@@ -159,31 +159,34 @@ export function TourOverlay() {
         <p id={`${titleId}-body`} className="mt-2 text-sm leading-relaxed text-muted-foreground">
           {step.body}
         </p>
-        <div className="mt-5 flex items-center gap-2">
+        {/* Long tours: when the dots and buttons don't fit on one line, the buttons go under. */}
+        <div className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-3">
           <span aria-hidden className="flex flex-1 items-center gap-1.5">
             {steps.map((s, i) => (
               <span
                 key={s.target}
                 className={cn(
-                  "h-1.5 rounded-full transition-all",
+                  "h-1.5 shrink-0 rounded-full transition-all",
                   i === index ? "w-6 bg-primary" : "w-1.5 bg-muted-foreground/30",
                 )}
               />
             ))}
           </span>
-          {!last && (
-            <Button variant="ghost" onClick={stop}>
-              {t.skip}
+          <div className="ml-auto flex items-center gap-2">
+            {!last && (
+              <Button variant="ghost" onClick={stop}>
+                {t.skip}
+              </Button>
+            )}
+            {index > 0 && (
+              <Button variant="outline" onClick={back}>
+                {t.back}
+              </Button>
+            )}
+            <Button ref={nextRef} onClick={last ? stop : next} className="min-w-20">
+              {last ? t.done : t.next}
             </Button>
-          )}
-          {index > 0 && (
-            <Button variant="outline" onClick={back}>
-              {t.back}
-            </Button>
-          )}
-          <Button ref={nextRef} onClick={last ? stop : next} className="min-w-20">
-            {last ? t.done : t.next}
-          </Button>
+          </div>
         </div>
       </section>
     </div>

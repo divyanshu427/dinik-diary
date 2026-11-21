@@ -77,7 +77,10 @@ export function ReportsScreen() {
       title={r.title}
       subtitle={r.subtitle}
       actions={
-        <div className="flex flex-wrap items-center gap-2 max-md:grid max-md:w-full max-md:grid-cols-2 max-md:gap-3">
+        <div
+          data-tour="hr-add"
+          className="flex flex-wrap items-center gap-2 max-md:grid max-md:w-full max-md:grid-cols-2 max-md:gap-3"
+        >
           <HealthTabs />
           <Button
             variant="outline"
@@ -159,6 +162,7 @@ export function ReportsScreen() {
             <div
               className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:gap-5"
               data-testid="report-health-tiles"
+              data-tour="hr-tiles"
             >
               <StatTile
                 label={r.tiles.reports}
@@ -186,6 +190,7 @@ export function ReportsScreen() {
 
           <Panel
             span={7}
+            tour="hr-list"
             title={r.list.title}
             subtitle={r.list.subtitle}
             bodyClassName="-mx-5 -mb-5 border-t"
@@ -208,7 +213,7 @@ export function ReportsScreen() {
             </ul>
           </Panel>
 
-          <Panel span={5} title={r.values.title} subtitle={r.values.subtitle}>
+          <Panel span={5} tour="hr-values" title={r.values.title} subtitle={r.values.subtitle}>
             <ValuesPanel
               series={series}
               onDelete={(id) => run(editor.deleteValue.mutateAsync([id]))}

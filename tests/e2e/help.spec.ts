@@ -1,30 +1,32 @@
 import { expect, test } from "@playwright/test";
 
-/** Pages that still explain themselves with a sheet (the others have a spotlight tour). */
+/** Every page's ⓘ starts its own tour; the first step's title shows which one. */
 const PAGES = [
-  ["/habits", "About Habits"],
-  ["/activities", "About Activities"],
-  ["/reports", "About Reports"],
-  ["/phases", "About Phases"],
-  ["/health", "About Health"],
-  ["/health/reports", "About Reports and values"],
-  ["/settings", "About Settings"],
+  // [page, a part to wait for (the page has loaded), first step's title]
+  ["/habits", "habits-phase", "Add your own"],
+  ["/activities", "activities-log", /^(Three views|Log what you did)$/], // tabs: phones only
+  ["/reports", "reports-period", "Pick a period"],
+  ["/phases", "phases-current", "Your current phase"],
+  ["/health", "health-add", "Two parts"],
+  ["/health/reports", "hr-add", "Reports and values"],
+  ["/settings", "settings-appearance", "Make it yours"],
 ] as const;
 
 test.describe("page help (the ⓘ button)", () => {
-  test("every page has an icon-only ⓘ that opens its own explanation", async ({ page }) => {
-    for (const [path, title] of PAGES) {
+  test("every page has an icon-only ⓘ that starts its own tour", async ({ page }) => {
+    for (const [path, loaded, first] of PAGES) {
       await page.goto(path);
+      await expect(page.locator(`[data-tour="${loaded}"]`).first()).toBeVisible();
       // One ⓘ is showing: in the logo row on phones, beside the title on a laptop.
       const button = page.getByRole("button", { name: "About this page" }).locator("visible=true");
       await expect(button).toHaveCount(1);
       await expect(button).toHaveText(""); // icon only, no word "Help"
       await button.click();
-      const sheet = page.getByRole("dialog");
-      await expect(sheet.getByRole("heading", { name: title, exact: true })).toBeVisible();
-      await expect(sheet).toContainText("When you change something");
-      await sheet.getByRole("button", { name: "Close", exact: true }).first().click();
-      await expect(sheet).toHaveCount(0);
+      const card = page.getByTestId("tour").getByRole("dialog");
+      await expect(card).toContainText(/Step 1 of \d/);
+      await expect(card.getByRole("heading", { name: first })).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(page.getByTestId("tour")).toHaveCount(0);
     }
   });
 });

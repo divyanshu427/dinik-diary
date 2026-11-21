@@ -94,6 +94,7 @@ export function IssueCard({
     <section
       aria-labelledby={titleId}
       data-issue={issue.title}
+      data-tour="health-issue"
       className="flex flex-col gap-4 rounded-2xl border bg-card p-5 text-card-foreground"
     >
       <div className="flex items-start justify-between gap-3">

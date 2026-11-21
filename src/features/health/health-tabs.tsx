@@ -16,6 +16,7 @@ export function HealthTabs() {
   const pathname = usePathname();
   return (
     <nav
+      data-tour="health-tabs"
       aria-label={t.label}
       className="inline-flex gap-1 rounded-xl border bg-card p-1 max-md:col-span-2 max-md:flex max-md:w-full"
     >

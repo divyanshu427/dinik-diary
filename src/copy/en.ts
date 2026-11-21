@@ -55,141 +55,245 @@ export const en = {
           body: "Sleep, the things you logged and the gaps in between, in time order. Tap + Log to add something you did, or Fill the gap.",
         },
       ],
+      habits: [
+        {
+          target: "habits-add",
+          title: "Add your own",
+          body: "Nothing here is fixed. Add a habit, or add a phase to group habits you want to start later.",
+        },
+        {
+          target: "habits-tiles",
+          title: "How you're doing",
+          body: "Active habits, your 14-day average, your best streak and the habit that needs the most attention.",
+        },
+        {
+          target: "habits-filters",
+          title: "Show just some",
+          body: "Filter by part of the day or by category. Dragging is switched off while a filter is on.",
+        },
+        {
+          target: "habits-phase",
+          title: "Habits come in phases",
+          body: "Tap a phase to open it. Habits in unlocked phases are on your Today checklist; locked phases hold habits for later. The ⋯ menu adds, edits or reorders.",
+        },
+        {
+          target: "habits-row",
+          title: "One habit",
+          body: "The dots are the last 14 days and the % is how often you kept it. Tap it for its history. The ⋮ menu edits it, moves it, pauses it for a few days, or archives it.",
+        },
+      ],
+      activities: [
+        {
+          target: "activities-tabs",
+          title: "Three views",
+          body: "Entries is your list by day, Breakdown shows where the time went, and Categories is where you rename, recolour or merge them.",
+        },
+        {
+          target: "activities-log",
+          title: "Log what you did",
+          body: "Trips, meals, movies, interviews: anything that isn't a daily habit. Add a start time and a length to place it on your day.",
+        },
+        {
+          target: "activities-filters",
+          title: "Filter by category",
+          body: "Show just one kind of entry, like Work or Meals.",
+        },
+        {
+          target: "activities-day",
+          title: "Your entries, day by day",
+          body: "Each day shows how many entries and how much time. Tap one to edit it, or use ⋮ to copy it to today or delete it.",
+        },
+        {
+          target: "activities-breakdown",
+          title: "Where the time went",
+          body: "Each category's share of the time you logged. Tap a name to see just its entries.",
+        },
+        {
+          target: "activities-categories",
+          title: "Your categories",
+          body: "Rename, recolour, merge or archive. Merging moves every entry into the other category.",
+        },
+      ],
+      reports: [
+        {
+          target: "reports-period",
+          title: "Pick a period",
+          body: "A week, a month or all time. The arrows move to earlier ones.",
+        },
+        {
+          target: "reports-sections",
+          title: "Jump to a part",
+          body: "Overview shows everything. Time, Days, Habits and Trends show just that part.",
+        },
+        {
+          target: "reports-tiles",
+          title: "The headlines",
+          body: "Your habit completion and how it compares with last time, your longest streak, screen time and your top category.",
+        },
+        {
+          target: "reports-insights",
+          title: "Patterns",
+          body: "Things the app noticed in your data, like habits you tend to skip together. They only show when they're clear.",
+        },
+        {
+          target: "reports-calendar",
+          title: "Day by day",
+          body: "Darker days are more complete. Tap a day to open it on Today and fill it in.",
+        },
+        {
+          target: "reports-time",
+          title: "Where your time went",
+          body: "Your logged time by category. Unlogged is time you haven't recorded, not time wasted. Waking time leaves sleep out.",
+        },
+        {
+          target: "reports-ranking",
+          title: "Most and least consistent",
+          body: "Your habits ranked by how often you kept them in this period.",
+        },
+        {
+          target: "reports-trends",
+          title: "Trends",
+          body: "One measure at a time, day by day, with your target as a dashed line.",
+        },
+        {
+          target: "reports-csv",
+          title: "Take it with you",
+          body: "Download this period as a spreadsheet file.",
+        },
+      ],
+      phases: [
+        {
+          target: "phases-current",
+          title: "Your current phase",
+          body: "The phase you're working on now, and how many habits it puts on your checklist.",
+        },
+        {
+          target: "phases-progress",
+          title: "Progress to the next phase",
+          body: "Your average over the window. Reach the line (80% by default) with enough days logged, and the next phase is offered.",
+        },
+        {
+          target: "phases-actions",
+          title: "What you can do",
+          body: "Repeat the phase for another round (no penalty), enable the next one early, or pause, so days don't count against you.",
+        },
+        {
+          target: "phases-chart",
+          title: "The window, day by day",
+          body: "Each bar is one day's completion. The line is the target.",
+        },
+        {
+          target: "phases-upnext",
+          title: "Up next",
+          body: "Locked phases waiting their turn. Change a target sets a harder target that starts with that phase.",
+        },
+        {
+          target: "phases-rules",
+          title: "The rules",
+          body: "How a phase unlocks, in full. You can change the target and the window in Settings.",
+        },
+        {
+          target: "phases-custom",
+          title: "Make your own phase",
+          body: "Group habits you want to start later. Add habits to it on the Habits page.",
+        },
+      ],
+      health: [
+        {
+          target: "health-tabs",
+          title: "Two parts",
+          body: "Overview is how you feel and the plan. Reports and values keeps your medical reports and numbers.",
+        },
+        {
+          target: "health-add",
+          title: "Say what's wrong",
+          body: "Back pain, a headache, hair fall: give it a name and a number from 0 to 10. That's all you need to do.",
+        },
+        {
+          target: "health-tiles",
+          title: "At a glance",
+          body: "Active issues, today's check-ins, your worst day this week, and plan changes waiting for your OK.",
+        },
+        {
+          target: "health-plan",
+          title: "The plan for the next few days",
+          body: "The app suggests changes from your habits, targets and check-ins. Nothing changes until you say yes, and changes go back by themselves.",
+        },
+        {
+          target: "health-issue",
+          title: "Check in each day",
+          body: "Tap Check in and pick a number. The bars show the last 14 days, so you can see if it's getting better.",
+        },
+        {
+          target: "health-safety",
+          title: "Not medical advice",
+          body: "At 8 or above, or if it keeps getting worse, see a doctor. For chest pain or trouble breathing, get help immediately.",
+        },
+      ],
+      healthReports: [
+        {
+          target: "health-tabs",
+          title: "Reports and values",
+          body: "Your medical reports and the numbers from them, next to how you feel in Overview.",
+        },
+        {
+          target: "hr-add",
+          title: "Add a report or a value",
+          body: "Add a report with a photo or PDF, or just a value you measured, like blood pressure at home.",
+        },
+        {
+          target: "hr-tiles",
+          title: "At a glance",
+          body: "How many reports and values you have, and which values are out of range.",
+        },
+        {
+          target: "hr-list",
+          title: "Your reports",
+          body: "Each report keeps its files and values. Tap a file to open it.",
+        },
+        {
+          target: "hr-values",
+          title: "Values over time",
+          body: "Each value with its trend. Low or High means outside the normal range from your report.",
+        },
+      ],
+      settings: [
+        {
+          target: "settings-appearance",
+          title: "Make it yours",
+          body: "Colours and light or dark mode.",
+        },
+        {
+          target: "settings-day",
+          title: "When your day starts",
+          body: "By default a new day starts at 4 AM, so a late night still counts for the right day.",
+        },
+        {
+          target: "settings-unlock",
+          title: "The phase rule",
+          body: "The target and the number of days a phase is judged over.",
+        },
+        {
+          target: "settings-backup",
+          title: "Back up your data",
+          body: "Everything lives on this device. Download a backup now and then; restoring one replaces what's here.",
+        },
+        {
+          target: "settings-demo",
+          title: "Try the demo",
+          body: "Look around with sample data. Your own data stays safe and comes back when you leave the demo.",
+        },
+        {
+          target: "settings-install",
+          title: "Install the app",
+          body: `Add ${brand.name} to your home screen so it opens like an app, even offline.`,
+        },
+      ],
     },
   },
-  /** The ⓘ sheet at the top of every page: what the page is for, how it works, what changes what. */
+  /** The ⓘ button at the top of every page: it starts that page's tour. */
   help: {
     button: "About this page",
-    close: "Close",
-    sections: {
-      purpose: "What it's for",
-      how: "How it works",
-      change: "When you change something",
-      flow: "Where it goes next",
-    },
-    pages: {
-      today: {
-        title: "About Today",
-        purpose:
-          "Your checklist for the day. Tick what you've done; this is where most of the app starts.",
-        how: [
-          "Tap a habit to tick it. Partial progress counts too (for example 2,100 of 8,000 steps).",
-          "Steps, water, wake-up time, bed time and sleep can fill in the matching habit for you: type them under Your numbers.",
-          "Evening and night habits open when their time comes.",
-          "Use the arrows or the calendar button next to the title to go back and fill in an earlier day.",
-          "Rest, Sick and Travel days don't break your streak and don't count against a phase.",
-        ],
-        change: [
-          "Unticking a habit removes that day's check-in.",
-          "Nothing here changes a habit's target. That's done in Habits.",
-        ],
-        flow: "Your ticks feed the streaks in Habits, the progress in Phases, and everything in Reports.",
-      },
-      habits: {
-        title: "About Habits",
-        purpose: "All your habits, grouped into phases. Add, edit and organise them here.",
-        how: [
-          "Phases open and close. Tap a habit to see its streak and last 30 days.",
-          "The ⋮ menu on a habit: edit, move to another phase, reorder, pause, archive or delete.",
-          "Pausing makes a habit not due for a few days, so its streak stays safe.",
-          "Locked phases hold habits for later. Habits can only move into unlocked phases.",
-        ],
-        change: [
-          "A new target counts from today. Past days keep the target they had, so your history stays honest.",
-          "Archiving hides a habit and keeps its history. Deleting removes it and all its check-ins.",
-        ],
-        flow: "Habits in unlocked phases appear on Today. Their last 14 days decide when the next phase can start.",
-      },
-      activities: {
-        title: "About Activities",
-        purpose:
-          "Log what you did that isn't a daily habit: trips, meals, movies, interviews and anything else.",
-        how: [
-          "Tap + Log activity. A start time and a length (or an end time) place it on your day.",
-          "Entries is the list by day. Breakdown shows time by category. Categories lets you rename, recolour, merge or archive them.",
-          "Tap a category in Breakdown to see just its entries.",
-        ],
-        change: [
-          "Merging a category moves all its entries into the other one.",
-          "A category can only be deleted when nothing uses it.",
-        ],
-        flow: "Activities fill the timeline on Today and the time chart in Reports. Time you haven't logged shows as Unlogged.",
-      },
-      reports: {
-        title: "About Reports",
-        purpose:
-          "How your time went and how consistent you were, over a week, a month or all time.",
-        how: [
-          "Week, Month and All time switch the period. ‹ › move to earlier ones.",
-          "The donut shows where your time went. Unlogged is time you haven't recorded, not time wasted.",
-          "Tap a day in Daily completion to open it on Today.",
-          "Habit consistency ranks your habits; Trends shows one measure day by day.",
-        ],
-        change: [
-          "Reports only reads your data. Fix a number by changing it on Today or Activities.",
-        ],
-        flow: "Everything here comes from your ticks on Today, your numbers, and your Activities.",
-      },
-      phases: {
-        title: "About Phases",
-        purpose: "Introduces habits a few at a time, so you don't take on too much at once.",
-        how: [
-          "The current phase is judged over a window of days. When your average reaches the target and enough days are logged, the next phase is offered.",
-          "Not there yet? Repeat the phase for another round: no penalty. Feeling ready? Enable the next one early.",
-          "Pause stops the clock, and paused days don't count against you.",
-          "Change a target sets a harder target that starts when that phase starts.",
-        ],
-        change: [
-          "Enabling a phase puts its habits on Today from today.",
-          "Turning a phase off takes its habits off Today; their history is kept.",
-        ],
-        flow: "The target and window can be changed in Settings. Progress comes from your ticks on Today.",
-      },
-      health: {
-        title: "About Health",
-        purpose:
-          "Tell the app what's wrong and how bad it is (0–10). It suggests a plan; you decide.",
-        how: [
-          "Add a health issue, then check in each day with a number from 0 to 10.",
-          "The plan for the next few days is worked out from your habits, targets and past check-ins.",
-          "Nothing changes until you say yes. A change lasts a few days and then goes back by itself.",
-          "At 8 or above, or if it keeps getting worse, the app tells you to see a doctor first.",
-        ],
-        change: [
-          "Saying yes to a suggestion lightens a habit only for those days.",
-          "Not now hides a suggestion. You can bring it back under the plan.",
-          "Deleting an issue deletes its check-ins.",
-        ],
-        flow: "Approved changes show up on Today. Reports and values keeps your medical reports next to this.",
-      },
-      healthReports: {
-        title: "About Reports and values",
-        purpose: "Keep your medical reports and the numbers from them, and watch them over time.",
-        how: [
-          "Add a report with a photo or PDF (up to 10 MB each). It stays on this device and in your backups.",
-          "Type in the values you care about, like Vitamin D. The app remembers the unit and normal range for next time.",
-          "Values outside their range are marked Low or High.",
-        ],
-        change: [
-          "Deleting a report deletes its files and its values.",
-          "Values you added yourself (not from a report) stay.",
-        ],
-        flow: "Out-of-range values also show on the Health overview.",
-      },
-      settings: {
-        title: "About Settings",
-        purpose: "Appearance, your day, backups and the rules the app uses.",
-        how: [
-          "Appearance changes the colours and light or dark mode.",
-          "Your day sets when a new day starts (default 4 AM), so late nights count for the right day.",
-          "Phase unlock rule sets the target and window for moving to the next phase.",
-          "Back up and restore saves all your data as a file, and loads one back.",
-          "Demo data lets you look around with sample data. Your own data stays safe.",
-        ],
-        change: ["Restoring a backup replaces what's on this device with what's in the file."],
-        flow: "These settings are used by Today, Phases and Reports.",
-      },
-    },
   },
   nav: {
     today: "Today",

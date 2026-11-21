@@ -135,7 +135,12 @@ export function ActivitiesScreen() {
         className="max-md:mb-4"
         actions={
           <div className="flex flex-col gap-3 max-md:w-full md:flex-row md:flex-wrap md:items-center md:gap-2">
-            <div role="tablist" aria-label={t.tabs.label} className="flex border-b md:hidden">
+            <div
+              data-tour="activities-tabs"
+              role="tablist"
+              aria-label={t.tabs.label}
+              className="flex border-b md:hidden"
+            >
               {TABS.map((value) => (
                 <button
                   key={value}
@@ -167,6 +172,7 @@ export function ActivitiesScreen() {
             />
             {/* Phones: a floating button above the tab bar. */}
             <Button
+              data-tour="activities-log"
               onClick={() => actions.logNew(today)}
               className="max-md:fixed max-md:right-4 max-md:bottom-[calc(5rem+env(safe-area-inset-bottom))] max-md:z-20 max-md:h-12 max-md:rounded-full max-md:px-5 max-md:text-base max-md:shadow-lg"
             >
@@ -216,6 +222,7 @@ export function ActivitiesScreen() {
 
         <Cell span={12} fullOnTablet className={onTab("entries")}>
           <div
+            data-tour="activities-filters"
             role="group"
             aria-label={t.filters.label}
             className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0"
@@ -257,6 +264,7 @@ export function ActivitiesScreen() {
               return (
                 <section
                   key={date}
+                  data-tour={date === dayList[0][0] ? "activities-day" : undefined}
                   aria-label={formatLongDate(date)}
                   className="overflow-hidden rounded-2xl border bg-card text-card-foreground"
                 >
@@ -287,7 +295,12 @@ export function ActivitiesScreen() {
         </Cell>
 
         <Cell span={4} className="flex flex-col gap-4 md:col-span-2 xl:col-span-4">
-          <Panel title={t.byCategory} subtitle={t.byCategoryHint} className={onTab("breakdown")}>
+          <Panel
+            tour="activities-breakdown"
+            title={t.byCategory}
+            subtitle={t.byCategoryHint}
+            className={onTab("breakdown")}
+          >
             {timedTotals.length === 0 ? (
               <p className="text-sm text-muted-foreground">{t.byCategoryEmpty}</p>
             ) : (
@@ -338,6 +351,7 @@ export function ActivitiesScreen() {
           <Panel
             title={copy.pages.activities.categories.title}
             subtitle={copy.pages.activities.categories.hint}
+            tour="activities-categories"
             className={onTab("categories")}
           >
             <CategoryManager

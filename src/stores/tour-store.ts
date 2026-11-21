@@ -12,10 +12,6 @@ export function tourTarget(target: string): HTMLElement | null {
   return box.width > 0 && box.height > 0 ? el : null;
 }
 
-export function hasTour(page: string): page is TourPage {
-  return page in copy.tour.pages;
-}
-
 interface TourState {
   /** The steps of the running tour (only those whose target is showing), or empty. */
   steps: readonly TourStep[];

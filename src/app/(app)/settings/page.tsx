@@ -19,25 +19,40 @@ export default function SettingsPage() {
     <>
       <PageHeader title={p.title} subtitle={p.subtitle} />
       <Dashboard>
-        <Panel span={7} title={p.appearance} subtitle={p.appearanceHint}>
+        <Panel span={7} tour="settings-appearance" title={p.appearance} subtitle={p.appearanceHint}>
           <ThemeControls />
         </Panel>
-        <Panel span={5} title={copy.pages.backup.title} subtitle={copy.pages.backup.hint}>
+        <Panel
+          span={5}
+          tour="settings-backup"
+          title={copy.pages.backup.title}
+          subtitle={copy.pages.backup.hint}
+        >
           <BackupSection />
         </Panel>
-        <Panel span={8} title={copy.pages.data.title} subtitle={copy.pages.data.hint}>
+        <Panel
+          span={8}
+          tour="settings-data"
+          title={copy.pages.data.title}
+          subtitle={copy.pages.data.hint}
+        >
           <DataSummary />
         </Panel>
-        <Panel span={4} title={copy.pages.demo.title} subtitle={copy.pages.demo.hint}>
+        <Panel
+          span={4}
+          tour="settings-demo"
+          title={copy.pages.demo.title}
+          subtitle={copy.pages.demo.hint}
+        >
           <DemoSection />
         </Panel>
-        <Panel span={7} title={p.day.title} subtitle={p.day.hint}>
+        <Panel span={7} tour="settings-day" title={p.day.title} subtitle={p.day.hint}>
           <DaySettings />
         </Panel>
-        <Panel span={5} title={p.install.title} subtitle={p.install.hint}>
+        <Panel span={5} tour="settings-install" title={p.install.title} subtitle={p.install.hint}>
           <InstallCard />
         </Panel>
-        <Panel span={12} title={p.unlock.title} subtitle={p.unlock.hint}>
+        <Panel span={12} tour="settings-unlock" title={p.unlock.title} subtitle={p.unlock.hint}>
           <UnlockRule />
         </Panel>
       </Dashboard>

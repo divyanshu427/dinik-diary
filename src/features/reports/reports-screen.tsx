@@ -165,6 +165,7 @@ export function ReportsScreen() {
         className="mb-4"
         actions={
           <Button
+            data-tour="reports-csv"
             variant="outline"
             onClick={exportCsv}
             disabled={!hasData}
@@ -176,7 +177,7 @@ export function ReportsScreen() {
           </Button>
         }
       />
-      <div className="mb-6 flex flex-wrap items-center gap-2">
+      <div data-tour="reports-period" className="mb-6 flex flex-wrap items-center gap-2">
         <SegmentedControl
           label={r.periodLabel}
           options={PERIODS}
@@ -259,6 +260,7 @@ export function ReportsScreen() {
       </p>
 
       <div
+        data-tour="reports-sections"
         role="group"
         aria-label={r.sections.label}
         className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1 md:hidden"
@@ -287,6 +289,7 @@ export function ReportsScreen() {
           <div
             className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:gap-5"
             data-testid="report-tiles"
+            data-tour="reports-tiles"
           >
             <StatTile
               label={r.tiles.completion}
@@ -338,6 +341,7 @@ export function ReportsScreen() {
         <Panel
           span={7}
           className={cn("max-md:order-4", inSection("time"))}
+          tour="reports-time"
           title={r.time.title}
           subtitle={
             base === "day"
@@ -365,6 +369,7 @@ export function ReportsScreen() {
         <Panel
           span={5}
           className={cn("max-md:order-3", inSection("days"))}
+          tour="reports-calendar"
           title={r.calendar.title}
           subtitle={r.calendar.subtitle(
             report.daysFullyDone,
@@ -414,6 +419,7 @@ export function ReportsScreen() {
         <Panel
           span={7}
           className={cn("max-md:order-7", inSection("time"))}
+          tour="reports-categories"
           title={r.categories.title}
           subtitle={r.categories.subtitle}
           bodyClassName="-mx-5 -mb-5"
@@ -428,6 +434,7 @@ export function ReportsScreen() {
         <Panel
           span={5}
           className={cn("max-md:order-2", inSection("habits"))}
+          tour="reports-insights"
           title={r.insights.title}
           subtitle={r.insights.subtitle}
         >
@@ -448,6 +455,7 @@ export function ReportsScreen() {
         <Panel
           span={5}
           className={cn("max-md:order-5", inSection("habits"))}
+          tour="reports-ranking"
           title={r.ranking.title}
           subtitle={r.ranking.subtitle}
         >
@@ -465,6 +473,7 @@ export function ReportsScreen() {
         <Panel
           span={7}
           className={cn("max-md:order-6", inSection("trends"))}
+          tour="reports-trends"
           title={r.trends.title}
           subtitle={r.trends.subtitle}
         >
