@@ -143,3 +143,27 @@ test.describe("Reports layout on a laptop", () => {
     expect(Math.abs(calendar.y - time.y)).toBeLessThan(5);
   });
 });
+
+test.describe("Reports on a phone", () => {
+  test.skip(({ isMobile }) => !isMobile, "phone only");
+
+  test("section chips show one part; tapping a day opens it on Today", async ({ page }) => {
+    await openDemo(page);
+    await openReports(page);
+    const chips = page.getByRole("group", { name: "Report sections" });
+    await expect(card(page, "Trends")).toBeVisible();
+
+    await chips.getByRole("button", { name: "Days" }).click();
+    await expect(card(page, "Daily completion")).toBeVisible();
+    await expect(card(page, "Trends")).toBeHidden();
+    await expect(page.getByTestId("report-tiles")).toBeHidden();
+
+    // The 1st of this month is always a past (or today's) day.
+    await card(page, "Daily completion")
+      .getByRole("button", { name: /^Open .* 1 / })
+      .first()
+      .click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole("heading", { level: 2, name: "Checklist" })).toBeVisible();
+  });
+});

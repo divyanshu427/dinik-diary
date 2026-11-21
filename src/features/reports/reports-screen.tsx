@@ -10,6 +10,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { PeriodHeatmap } from "@/components/charts/period-heatmap";
 import { TimeDonut, type TimeSlice } from "@/components/charts/time-donut";
@@ -38,6 +39,8 @@ import {
   type Tone,
 } from "@/lib/core";
 import { downloadText } from "@/lib/download";
+import { cn } from "@/lib/utils";
+import { useUiStore } from "@/stores/ui-store";
 import { formatMetric, insightText } from "./insight-text";
 import { reportCsv } from "./report-csv";
 import { TrendChart, type TrendSeries } from "./trend-chart";
@@ -86,12 +89,22 @@ const TREND_METRICS: readonly MetricKey[] = [
 
 type ReportResult = NonNullable<ReturnType<typeof useReport>["result"]>;
 
+/** Phones: chips that show one part of the report at a time ("Overview" shows it all). */
+type Section = "overview" | "time" | "days" | "habits" | "trends";
+const SECTIONS: readonly Section[] = ["overview", "time", "days", "habits", "trends"];
+
 /** The report page (Build Phase 10): a week, a month or all time, on the dashboard grid. */
 export function ReportsScreen() {
   const [kind, setKind] = useState<PeriodKind>("month");
   const [anchor, setAnchor] = useState<IsoDate | null>(null);
   const [base, setBase] = useState<"day" | "waking">("day");
   const [exported, setExported] = useState<string | null>(null);
+  const [section, setSection] = useState<Section>("overview");
+  const router = useRouter();
+  const setSelectedDate = useUiStore((st) => st.setSelectedDate);
+  /** Hides a card on phones unless the chosen section includes it. */
+  const inSection = (...sections: Section[]) =>
+    section === "overview" || sections.includes(section) ? undefined : "max-md:hidden";
   const { result, isError } = useReport(kind, anchor);
   const activities = useActivities();
 
@@ -143,52 +156,65 @@ export function ReportsScreen() {
   };
 
   const header = (
-    <PageHeader
-      eyebrow={periodLabel(kind, range.start, shownEnd)}
-      title={r.title}
-      subtitle={r.subtitle}
-      actions={
-        <div className="flex flex-wrap items-center gap-2">
-          <SegmentedControl
-            label={r.periodLabel}
-            options={PERIODS}
-            value={kind}
-            onChange={(k) => {
-              setKind(k);
-              setAnchor(null);
-            }}
-          />
-          {kind !== "all" && (
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="icon"
-                aria-label={r.previousPeriod}
-                onClick={() => setAnchor(addDays(range.start, -1))}
-              >
-                <ChevronLeft aria-hidden />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                aria-label={r.nextPeriod}
-                disabled={range.end >= today}
-                onClick={() => {
-                  const next = addDays(range.end, 1);
-                  setAnchor(next >= today ? null : next);
-                }}
-              >
-                <ChevronRight aria-hidden />
-              </Button>
-            </div>
-          )}
-          <Button variant="outline" onClick={exportCsv} disabled={!hasData}>
+    <>
+      <PageHeader
+        eyebrow={periodLabel(kind, range.start, shownEnd)}
+        title={r.title}
+        subtitle={r.subtitle}
+        inlineActions
+        className="mb-4"
+        actions={
+          <Button
+            variant="outline"
+            onClick={exportCsv}
+            disabled={!hasData}
+            aria-label={r.exportCsv}
+          >
             <Download aria-hidden />
-            {r.exportCsv}
+            <span className="max-sm:hidden">{r.exportCsv}</span>
+            <span className="sm:hidden">{r.csvShort}</span>
           </Button>
-        </div>
-      }
-    />
+        }
+      />
+      <div className="mb-6 flex flex-wrap items-center gap-2">
+        <SegmentedControl
+          label={r.periodLabel}
+          options={PERIODS}
+          value={kind}
+          onChange={(k) => {
+            setKind(k);
+            setAnchor(null);
+          }}
+          className="max-sm:flex-1 max-sm:*:flex-1"
+        />
+        {kind !== "all" && (
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-10 rounded-full"
+              aria-label={r.previousPeriod}
+              onClick={() => setAnchor(addDays(range.start, -1))}
+            >
+              <ChevronLeft aria-hidden />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-10 rounded-full"
+              aria-label={r.nextPeriod}
+              disabled={range.end >= today}
+              onClick={() => {
+                const next = addDays(range.end, 1);
+                setAnchor(next >= today ? null : next);
+              }}
+            >
+              <ChevronRight aria-hidden />
+            </Button>
+          </div>
+        )}
+      </div>
+    </>
   );
 
   if (!hasData) {
@@ -232,8 +258,32 @@ export function ReportsScreen() {
         {exported}
       </p>
 
+      <div
+        role="group"
+        aria-label={r.sections.label}
+        className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1 md:hidden"
+      >
+        {SECTIONS.map((value) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={section === value}
+            onClick={() => setSection(value)}
+            className={cn(
+              "h-9 shrink-0 rounded-full border px-4 text-sm font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+              section === value
+                ? "border-primary bg-primary text-primary-foreground"
+                : "bg-card hover:bg-muted",
+            )}
+          >
+            {r.sections[value]}
+          </button>
+        ))}
+      </div>
+
+      {/* Phones put the cards in the mock-up's order: tiles, insights, days, time, habits, trends, categories. */}
       <Dashboard>
-        <Cell span={12} fullOnTablet>
+        <Cell span={12} fullOnTablet className={cn("max-md:order-1", inSection())}>
           <div
             className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:gap-5"
             data-testid="report-tiles"
@@ -287,6 +337,7 @@ export function ReportsScreen() {
 
         <Panel
           span={7}
+          className={cn("max-md:order-4", inSection("time"))}
           title={r.time.title}
           subtitle={
             base === "day"
@@ -297,7 +348,13 @@ export function ReportsScreen() {
           }
         >
           <div className="mb-4 flex justify-end">
-            <SegmentedControl label={r.time.base} options={BASES} value={base} onChange={setBase} />
+            <SegmentedControl
+              label={r.time.base}
+              options={BASES}
+              value={base}
+              onChange={setBase}
+              className="max-sm:flex max-sm:w-full max-sm:*:flex-1"
+            />
           </div>
           <TimeCard
             slices={base === "day" ? report.time.day : report.time.waking}
@@ -307,6 +364,7 @@ export function ReportsScreen() {
 
         <Panel
           span={5}
+          className={cn("max-md:order-3", inSection("days"))}
           title={r.calendar.title}
           subtitle={r.calendar.subtitle(
             report.daysFullyDone,
@@ -320,31 +378,42 @@ export function ReportsScreen() {
             days={report.days.map((d) => ({ date: d.date, pct: d.average, rest: d.rest }))}
             today={today}
             weekStart={settings.weekStart}
+            onPick={(date) => {
+              setSelectedDate(date >= today ? null : date);
+              router.push("/");
+            }}
           />
           {(report.bestDay || report.worstDay) && (
-            <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+            <dl className="mt-4 grid grid-cols-2 gap-3 text-sm" data-testid="best-worst">
               {report.bestDay && (
-                <span>
-                  {r.calendar.best(
-                    shortDay.format(asDate(report.bestDay.date)),
-                    Math.round(report.bestDay.average),
-                  )}
-                </span>
+                <div className="rounded-xl bg-muted/60 px-3 py-2.5">
+                  <dt className="text-muted-foreground">{r.calendar.best}</dt>
+                  <dd className="font-semibold">
+                    {r.calendar.dayValue(
+                      shortDay.format(asDate(report.bestDay.date)),
+                      Math.round(report.bestDay.average),
+                    )}
+                  </dd>
+                </div>
               )}
               {report.worstDay && (
-                <span>
-                  {r.calendar.worst(
-                    shortDay.format(asDate(report.worstDay.date)),
-                    Math.round(report.worstDay.average),
-                  )}
-                </span>
+                <div className="rounded-xl bg-muted/60 px-3 py-2.5">
+                  <dt className="text-muted-foreground">{r.calendar.worst}</dt>
+                  <dd className="font-semibold">
+                    {r.calendar.dayValue(
+                      shortDay.format(asDate(report.worstDay.date)),
+                      Math.round(report.worstDay.average),
+                    )}
+                  </dd>
+                </div>
               )}
-            </p>
+            </dl>
           )}
         </Panel>
 
         <Panel
           span={7}
+          className={cn("max-md:order-7", inSection("time"))}
           title={r.categories.title}
           subtitle={r.categories.subtitle}
           bodyClassName="-mx-5 -mb-5"
@@ -356,7 +425,12 @@ export function ReportsScreen() {
           />
         </Panel>
 
-        <Panel span={5} title={r.insights.title} subtitle={r.insights.subtitle}>
+        <Panel
+          span={5}
+          className={cn("max-md:order-2", inSection("habits"))}
+          title={r.insights.title}
+          subtitle={r.insights.subtitle}
+        >
           {insights.length === 0 ? (
             <EmptyState icon={Lightbulb} title={r.insights.empty} className="border-0 py-4" />
           ) : (
@@ -371,11 +445,29 @@ export function ReportsScreen() {
           )}
         </Panel>
 
-        <Panel span={5} title={r.ranking.title} subtitle={r.ranking.subtitle}>
+        <Panel
+          span={5}
+          className={cn("max-md:order-5", inSection("habits"))}
+          title={r.ranking.title}
+          subtitle={r.ranking.subtitle}
+        >
           <Ranking habits={report.habits} name={names.habit} />
+          {report.habits.length > 0 && (
+            <Link
+              href="/habits"
+              className="mt-4 inline-block text-sm font-medium text-primary underline-offset-4 hover:underline"
+            >
+              {r.ranking.seeAll(report.habits.length)}
+            </Link>
+          )}
         </Panel>
 
-        <Panel span={7} title={r.trends.title} subtitle={r.trends.subtitle}>
+        <Panel
+          span={7}
+          className={cn("max-md:order-6", inSection("trends"))}
+          title={r.trends.title}
+          subtitle={r.trends.subtitle}
+        >
           <TrendChart series={trendSeries(result)} />
         </Panel>
       </Dashboard>

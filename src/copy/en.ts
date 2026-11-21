@@ -339,6 +339,15 @@ export const en = {
       loading: "Working out your report…",
       loadError: "Couldn't load your report.",
       exportCsv: "Export CSV",
+      csvShort: "CSV",
+      sections: {
+        label: "Report sections",
+        overview: "Overview",
+        time: "Time",
+        days: "Days",
+        habits: "Habits",
+        trends: "Trends",
+      },
       exported: (name: string) => `Saved ${name} to your downloads.`,
       csvName: (from: string, to: string) => `dinik-diary-report-${from}-to-${to}.csv`,
       empty: {
@@ -383,9 +392,11 @@ export const en = {
       calendar: {
         title: "Daily completion",
         subtitle: (fullyDone: number, atTarget: number, threshold: number) =>
-          `${fullyDone} ${fullyDone === 1 ? "day" : "days"} fully done · ${atTarget} at ${threshold}% or more`,
-        best: (day: string, pct: number) => `Best: ${day} (${pct}%)`,
-        worst: (day: string, pct: number) => `Weakest: ${day} (${pct}%)`,
+          `${fullyDone} ${fullyDone === 1 ? "day" : "days"} fully done · ${atTarget} at ${threshold}% or more. Tap a day to open it.`,
+        best: "Best",
+        worst: "Weakest",
+        dayValue: (day: string, pct: number) => `${day} · ${pct}%`,
+        open: (label: string) => `Open ${label}`,
         cell: (day: string, pct: number | null, rest: boolean) =>
           rest
             ? `${day}: rest day`
@@ -414,8 +425,9 @@ export const en = {
         subtitle: "Success rate in this period.",
         top: "Most consistent",
         bottom: "Needs attention",
-        streak: (value: string) => `streak ${value}`,
+        streak: (value: string) => `Streak ${value}`,
         empty: "No active habits in this period.",
+        seeAll: (n: number) => `See all ${n} habits`,
       },
       trends: {
         title: "Trends",

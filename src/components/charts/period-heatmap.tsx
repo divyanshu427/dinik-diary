@@ -30,6 +30,8 @@ interface PeriodHeatmapProps {
   days: readonly PeriodHeatmapDay[];
   today: IsoDate;
   weekStart: WeekStart;
+  /** Calendar view: tapping a past day (or today) opens it. */
+  onPick?: (date: IsoDate) => void;
 }
 
 const t = copy.pages.reports.calendar;
@@ -45,7 +47,7 @@ const asDate = (d: IsoDate) => {
   return new Date(year, month - 1, day);
 };
 
-export function PeriodHeatmap({ start, end, days, today, weekStart }: PeriodHeatmapProps) {
+export function PeriodHeatmap({ start, end, days, today, weekStart, onPick }: PeriodHeatmapProps) {
   const byDate = new Map(days.map((d) => [d.date, d]));
   const gridStart = startOfWeek(start, weekStart);
   const weekdays = weekStart === "monday" ? WEEKDAYS_MON : ["Sun", ...WEEKDAYS_MON.slice(0, 6)];
@@ -108,7 +110,18 @@ export function PeriodHeatmap({ start, end, days, today, weekStart }: PeriodHeat
                 date === today && "ring-2 ring-foreground ring-offset-1 ring-offset-card",
               )}
             >
-              {parseIsoDate(date).day}
+              {onPick && date >= start && date <= today ? (
+                <button
+                  type="button"
+                  aria-label={t.open(cellLabel(date))}
+                  onClick={() => onPick(date)}
+                  className="size-full rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  {parseIsoDate(date).day}
+                </button>
+              ) : (
+                parseIsoDate(date).day
+              )}
             </div>
           ))}
         </div>
