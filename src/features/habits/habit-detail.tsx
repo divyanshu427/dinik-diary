@@ -36,7 +36,7 @@ interface HabitDetailProps {
   upcoming?: { phase: Phase; upgrade: TargetUpgrade }[];
   today: string;
   onEdit: () => void;
-  /** Rendered inside a dialog on phones: the dialog supplies the title. */
+  /** Rendered inside a dialog on phones: the dialog supplies the title and the Edit button. */
   hideTitle?: boolean;
 }
 
@@ -67,7 +67,7 @@ export function HabitDetail({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           {!hideTitle && <h2 className="font-heading text-xl font-semibold">{habit.name}</h2>}
-          <div className="mt-2 flex flex-wrap gap-1.5">
+          <div className={hideTitle ? "flex flex-wrap gap-1.5" : "mt-2 flex flex-wrap gap-1.5"}>
             {phase && <Badge variant="secondary">{phaseLabel(phase)}</Badge>}
             {category && <Badge variant="outline">{category.name}</Badge>}
             {habit.partOfDay !== "anytime" && (
@@ -75,10 +75,12 @@ export function HabitDetail({
             )}
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={onEdit}>
-          <Pencil aria-hidden />
-          {d.edit}
-        </Button>
+        {!hideTitle && (
+          <Button variant="outline" size="sm" onClick={onEdit}>
+            <Pencil aria-hidden />
+            {d.edit}
+          </Button>
+        )}
       </div>
 
       <dl className="grid grid-cols-2 gap-3 text-sm">

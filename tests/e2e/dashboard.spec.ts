@@ -110,16 +110,43 @@ test.describe("filters and part of day", () => {
 test.describe("phone", () => {
   test.skip(({ isMobile }) => !isMobile, "phone only");
 
-  test("tapping a habit opens its details in a dialog", async ({ page }) => {
+  test("tapping a habit opens its details as a full page; back closes it", async ({ page }) => {
     await openHabits(page);
     await expect(detail(page)).toHaveCount(0); // no side panel on phones
     await phase(page, P1).getByRole("button", { name: /^Bath/ }).click();
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByRole("heading", { name: "Bath" })).toBeVisible();
     await expect(dialog).toContainText("Last 30 days");
+    // Fills the screen from the top (once it has slid in).
+    await expect.poll(async () => (await dialog.boundingBox())?.y).toBeLessThanOrEqual(1);
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
     expect(overflow).toBeLessThanOrEqual(0);
+
+    // The phone's back gesture closes it and stays on Habits.
+    await page.goBack();
+    await expect(dialog).toHaveCount(0);
+    await expect(page).toHaveURL("/habits");
+
+    await phase(page, P1).getByRole("button", { name: /^Bath/ }).click();
+    await dialog.getByRole("button", { name: "Back" }).click();
+    await expect(dialog).toHaveCount(0);
+  });
+
+  test("menus open as a bottom sheet with descriptions", async ({ page }) => {
+    await openHabits(page);
+    await page.getByRole("button", { name: "Actions for Wake up on time" }).click();
+    const sheet = page.getByRole("dialog");
+    await expect(sheet.getByRole("menuitem", { name: "Edit habit" })).toHaveAccessibleDescription(
+      "Name, target, how often, category",
+    );
+    await sheet.getByRole("menuitem", { name: "Reorder" }).click();
+    await expect(sheet.getByRole("menuitem", { name: "Move up" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    ); // it's already first
+    await sheet.getByRole("button", { name: "Cancel" }).click();
+    await expect(sheet).toHaveCount(0);
   });
 });

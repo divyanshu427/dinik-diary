@@ -26,6 +26,10 @@ test.describe("installable app", () => {
     await expect(page.getByRole("heading", { level: 2, name: "Checklist" })).toBeVisible();
     // Tick something, so there's my own data to see offline.
     await page.getByRole("checkbox", { name: "Bath", exact: true }).click();
+    await expect(page.getByRole("checkbox", { name: "Bath", exact: true })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
     await page.evaluate(() => navigator.serviceWorker.ready);
     await expect(page.getByTestId("offline-status")).toHaveCount(0); // not on this page
     await page.goto("/settings");

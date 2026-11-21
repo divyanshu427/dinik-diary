@@ -7,32 +7,29 @@ import {
   Archive,
   ArrowDown,
   ArrowUp,
+  ArrowUpDown,
   ChevronRight,
-  Ellipsis,
+  ChevronsUpDown,
+  EllipsisVertical,
+  FileText,
   FolderInput,
   GripVertical,
   Lock,
+  Pause,
   Pencil,
+  Play,
   Plus,
   Trash2,
 } from "lucide-react";
 import type { CSSProperties } from "react";
+import { ActionMenu, type ActionItem } from "@/components/action-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { copy } from "@/copy";
 import { isUnlocked } from "@/data/habit-ops";
 import type { Category, Habit, HabitTarget, Phase } from "@/data/schema";
-import { targetOn, type HabitStats } from "@/lib/core";
+import { formatShort } from "@/features/today/format";
+import { isPausedOn, targetOn, type HabitStats } from "@/lib/core";
 import { cn } from "@/lib/utils";
 import { describeSchedule, describeTarget, phaseLabel } from "./format";
 import { HistoryDots } from "./history-views";
@@ -43,6 +40,8 @@ export const containerId = (phaseId: string) => `phase:${phaseId}`;
 
 export interface HabitRowHandlers {
   onEditHabit: (habit: Habit) => void;
+  onPauseHabit: (habit: Habit, days: number) => void;
+  onResumeHabit: (habit: Habit) => void;
   onMoveHabit: (habit: Habit, direction: "up" | "down") => void;
   onMoveHabitTo: (habit: Habit, phaseId: string) => void;
   onArchiveHabit: (habit: Habit) => void;
@@ -84,6 +83,9 @@ interface PhaseSectionProps extends HabitRowHandlers, RowContext, RowStats {
   isFirst: boolean;
   isLast: boolean;
   onToggle: () => void;
+  /** Phones: drag handles show only while reordering this phase (from its menu). */
+  reordering: boolean;
+  onReorder: (on: boolean) => void;
   onAddHabit: () => void;
   onEditPhase: () => void;
   onMovePhase: (direction: "up" | "down") => void;
@@ -92,11 +94,10 @@ interface PhaseSectionProps extends HabitRowHandlers, RowContext, RowStats {
 
 /** One phase: a header you click to expand, and its habits, which can be dragged. */
 export function PhaseSection(props: PhaseSectionProps) {
-  const { phase, habits, open, dropState, isFirst, isLast } = props;
+  const { phase, habits, open, dropState } = props;
   const { setNodeRef } = useDroppable({ id: containerId(phase.id) });
   const labelId = `phase-label-${phase.id}`;
   const listId = `phase-list-${phase.id}`;
-  const locked = !isUnlocked(phase);
 
   return (
     <section
@@ -108,7 +109,7 @@ export function PhaseSection(props: PhaseSectionProps) {
         dropState === "blocked" && "ring-2 ring-destructive",
       )}
     >
-      <header className="flex items-center gap-1 py-1.5 pr-2 pl-1.5">
+      <header className="flex items-start gap-1 py-1.5 pr-2 pl-1.5 sm:items-center">
         <h2 className="min-w-0 flex-1">
           <button
             type="button"
@@ -128,11 +129,16 @@ export function PhaseSection(props: PhaseSectionProps) {
               <span id={labelId} className="block font-heading text-lg font-semibold">
                 {phaseLabel(phase)}
               </span>
+              {/* Phones: count and status under the name. */}
+              <span className="mt-0.5 flex items-center gap-2 text-sm font-normal text-muted-foreground sm:hidden">
+                {t.habitCount(props.totalCount)}
+                <StatusBadge phase={phase} />
+              </span>
               {phase.description && (
                 <span
                   className={cn(
-                    "block text-sm font-normal text-muted-foreground",
-                    !open && "line-clamp-1",
+                    "block text-sm font-normal text-muted-foreground max-sm:mt-1",
+                    !open && "line-clamp-1 max-sm:hidden",
                   )}
                 >
                   {phase.description}
@@ -152,38 +158,30 @@ export function PhaseSection(props: PhaseSectionProps) {
         <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
           {t.habitCount(props.totalCount)}
         </span>
-        <Badge variant={phase.status === "active" ? "default" : "secondary"} className="shrink-0">
-          {locked && <Lock aria-hidden />}
-          {copy.pages.data.phaseStatus[phase.status]}
-        </Badge>
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <Button variant="ghost" size="icon-sm" aria-label={t.phaseActions.more(phase.name)} />
-            }
+        <StatusBadge phase={phase} className="hidden sm:inline-flex" />
+        {props.reordering && (
+          <Button
+            size="sm"
+            variant="secondary"
+            className="mt-1.5 sm:mt-0"
+            aria-label={t.phaseActions.reorderDoneLabel(phase.name)}
+            onClick={() => props.onReorder(false)}
           >
-            <Ellipsis aria-hidden />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-auto min-w-48">
-            <DropdownMenuItem onClick={props.onEditPhase}>
-              <Pencil aria-hidden />
-              {t.phaseActions.edit}
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled={isFirst} onClick={() => props.onMovePhase("up")}>
-              <ArrowUp aria-hidden />
-              {t.phaseActions.moveUp}
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled={isLast} onClick={() => props.onMovePhase("down")}>
-              <ArrowDown aria-hidden />
-              {t.phaseActions.moveDown}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onClick={props.onDeletePhase}>
-              <Trash2 aria-hidden />
-              {t.phaseActions.delete}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            {t.phaseActions.reorderDone}
+          </Button>
+        )}
+        <ActionMenu
+          label={t.phaseActions.more(phase.name)}
+          title={phaseLabel(phase)}
+          subtitle={
+            <span className="flex items-center gap-2">
+              {t.habitCount(props.totalCount)}
+              <StatusBadge phase={phase} />
+            </span>
+          }
+          triggerClassName="mt-1.5 sm:mt-0"
+          items={phaseItems(props)}
+        />
       </header>
 
       {dropState !== "none" && !open && (
@@ -260,18 +258,21 @@ function SortableHabitRow(props: RowProps) {
   const selected = props.selectedId === habit.id;
   const weakest = props.weakestId === habit.id;
 
+  const percent = stats?.percent != null ? `${Math.round(stats.percent)}%` : t.kpi.none;
+  const streakText = stats ? t.streakValue(stats.streak.current, stats.streak.unit) : "";
+
   return (
     <li
       ref={setNodeRef}
       style={style}
       className={cn(
-        "flex items-center gap-2 bg-card py-1.5 pr-2 pl-1",
+        "flex items-start gap-2 bg-card py-1.5 pr-2 pl-1 sm:items-center",
         selected && "bg-accent",
         isDragging && "relative z-10 opacity-40",
       )}
     >
       {props.dragDisabled ? (
-        <span aria-hidden className="size-9 shrink-0" />
+        <span aria-hidden className="size-9 shrink-0 max-sm:hidden" />
       ) : (
         <button
           ref={setActivatorNodeRef}
@@ -279,32 +280,42 @@ function SortableHabitRow(props: RowProps) {
           {...attributes}
           {...listeners}
           aria-label={t.drag.handle(habit.name)}
-          className="flex size-9 shrink-0 cursor-grab touch-none items-center justify-center rounded-lg text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 active:cursor-grabbing"
+          className={cn(
+            "flex size-9 shrink-0 cursor-grab touch-none items-center justify-center rounded-lg text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 active:cursor-grabbing",
+            !props.reordering && "max-sm:hidden",
+          )}
         >
           <GripVertical aria-hidden className="size-4" />
         </button>
       )}
-      <button
-        type="button"
-        aria-pressed={selected}
-        onClick={() => props.onSelectHabit(habit)}
-        className="min-w-0 flex-1 rounded-lg px-1.5 py-1 text-left outline-none hover:bg-muted/70 focus-visible:ring-3 focus-visible:ring-ring/50"
-      >
-        <HabitRowText {...props} />
-      </button>
+      <div className="min-w-0 flex-1 max-sm:pl-2">
+        <button
+          type="button"
+          aria-pressed={selected}
+          onClick={() => props.onSelectHabit(habit)}
+          className="w-full rounded-lg px-1.5 py-1 text-left outline-none hover:bg-muted/70 focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          <HabitRowText {...props} />
+        </button>
+        {/* Phones and tablets: the last 14 days under the name. */}
+        {stats && (
+          <HistoryDots days={stats.days.slice(-14)} className="mt-1 mb-1 px-1.5 lg:hidden" />
+        )}
+      </div>
       {stats && <HistoryDots days={stats.days.slice(-14)} className="hidden w-48 lg:flex" />}
       <span className="hidden w-20 text-sm text-muted-foreground tabular-nums sm:block">
-        {stats ? t.streakValue(stats.streak.current, stats.streak.unit) : ""}
+        {streakText}
       </span>
-      <span className="w-16 text-right tabular-nums">
+      <span className="flex w-16 flex-col items-end self-stretch py-1 text-right tabular-nums sm:block sm:self-auto sm:py-0">
         <span className={cn("block text-sm font-semibold", weakest && "text-warning")}>
-          {stats?.percent != null ? `${Math.round(stats.percent)}%` : t.kpi.none}
+          {percent}
         </span>
         {weakest && (
           <span className="block text-[11px] font-medium text-warning uppercase">
             {t.weakestTag}
           </span>
         )}
+        <span className="mt-auto block text-sm text-muted-foreground sm:hidden">{streakText}</span>
       </span>
       <HabitMenu {...props} />
     </li>
@@ -339,7 +350,9 @@ export function HabitRowText({
   const target = targetOn(targetsByHabit.get(habit.id) ?? [], today);
   const category = habit.categoryId ? categoryById.get(habit.categoryId) : undefined;
   // Only what's informative: "Yes / no" and "Every day" are the defaults, so they're left out.
+  const pause = today ? habit.pauses.find((p) => p.from <= today && today <= p.to) : undefined;
   const details = [
+    pause ? t.pausedUntil(formatShort(pause.to)) : null,
     habit.type !== "boolean" ? describeTarget(habit, target) : null,
     habit.schedule.kind !== "daily" ? describeSchedule(habit.schedule) : null,
     habit.partOfDay !== "anytime" ? t.partsOfDay[habit.partOfDay] : null,
@@ -358,70 +371,171 @@ export function HabitRowText({
   );
 }
 
-function HabitMenu({
-  habit,
-  phase,
-  allPhases,
-  isFirstHabit,
-  isLastHabit,
-  onEditHabit,
-  onMoveHabit,
-  onMoveHabitTo,
-  onArchiveHabit,
-  onDeleteHabit,
-}: RowProps) {
+function HabitMenu(props: RowProps) {
+  const { habit, phase, allPhases, isFirstHabit, isLastHabit, today } = props;
+  const a = t.actions;
   const otherPhases = allPhases.filter((p) => p.id !== phase.id);
+  const paused = !!today && isPausedOn(habit.pauses, today);
+  const pause = paused ? habit.pauses.find((p) => p.from <= today && today <= p.to) : undefined;
+  const stats = props.stats.get(habit.id);
+  const category = habit.categoryId ? props.categoryById.get(habit.categoryId) : undefined;
+  const pct = stats?.percent != null ? Math.round(stats.percent) : null;
+
+  const items: ActionItem[] = [
+    {
+      label: a.open,
+      description: a.openHint,
+      icon: FileText,
+      onSelect: () => props.onSelectHabit(habit),
+    },
+    {
+      label: a.edit,
+      description: a.editHint,
+      icon: Pencil,
+      onSelect: () => props.onEditHabit(habit),
+    },
+    ...(otherPhases.length > 0
+      ? [
+          {
+            label: a.moveTo,
+            description: a.moveToHint(phaseLabel(phase)),
+            icon: FolderInput,
+            children: otherPhases.map((p) => ({
+              label: phaseLabel(p),
+              icon: isUnlocked(p) ? undefined : Lock,
+              disabled: !isUnlocked(p),
+              srNote: isUnlocked(p) ? undefined : t.locked,
+              onSelect: () => props.onMoveHabitTo(habit, p.id),
+            })),
+          },
+        ]
+      : []),
+    {
+      label: a.reorder,
+      description: a.reorderHint,
+      icon: ArrowUpDown,
+      disabled: isFirstHabit && isLastHabit,
+      children: [
+        {
+          label: a.moveUp,
+          icon: ArrowUp,
+          disabled: isFirstHabit,
+          onSelect: () => props.onMoveHabit(habit, "up"),
+        },
+        {
+          label: a.moveDown,
+          icon: ArrowDown,
+          disabled: isLastHabit,
+          onSelect: () => props.onMoveHabit(habit, "down"),
+        },
+      ],
+    },
+    paused
+      ? {
+          label: a.resume,
+          description: pause ? a.resumeHint(formatShort(pause.to)) : undefined,
+          icon: Play,
+          onSelect: () => props.onResumeHabit(habit),
+        }
+      : {
+          label: a.pause,
+          description: a.pauseHint,
+          icon: Pause,
+          children: [3, 7, 14].map((days) => ({
+            label: a.pauseFor[days],
+            onSelect: () => props.onPauseHabit(habit, days),
+          })),
+        },
+    {
+      label: a.archive,
+      description: a.archiveHint,
+      icon: Archive,
+      onSelect: () => props.onArchiveHabit(habit),
+    },
+    {
+      label: a.deleteHabit,
+      description: a.deleteHint,
+      icon: Trash2,
+      destructive: true,
+      separatorBefore: true,
+      onSelect: () => props.onDeleteHabit(habit),
+    },
+  ];
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={<Button variant="ghost" size="icon-sm" aria-label={t.actions.more(habit.name)} />}
-      >
-        <Ellipsis aria-hidden />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-auto min-w-48">
-        <DropdownMenuItem onClick={() => onEditHabit(habit)}>
-          <Pencil aria-hidden />
-          {t.actions.edit}
-        </DropdownMenuItem>
-        <DropdownMenuItem disabled={isFirstHabit} onClick={() => onMoveHabit(habit, "up")}>
-          <ArrowUp aria-hidden />
-          {t.actions.moveUp}
-        </DropdownMenuItem>
-        <DropdownMenuItem disabled={isLastHabit} onClick={() => onMoveHabit(habit, "down")}>
-          <ArrowDown aria-hidden />
-          {t.actions.moveDown}
-        </DropdownMenuItem>
-        {otherPhases.length > 0 && (
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-              <FolderInput aria-hidden />
-              {t.actions.moveTo}
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent className="min-w-56">
-              {otherPhases.map((p) => (
-                <DropdownMenuItem
-                  key={p.id}
-                  disabled={!isUnlocked(p)}
-                  onClick={() => onMoveHabitTo(habit, p.id)}
-                >
-                  {!isUnlocked(p) && <Lock aria-hidden />}
-                  {phaseLabel(p)}
-                  {!isUnlocked(p) && <span className="sr-only"> ({t.locked})</span>}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
-        )}
-        <DropdownMenuItem onClick={() => onArchiveHabit(habit)}>
-          <Archive aria-hidden />
-          {t.actions.archive}
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onClick={() => onDeleteHabit(habit)}>
-          <Trash2 aria-hidden />
-          {t.actions.delete}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <ActionMenu
+      label={a.more(habit.name)}
+      title={habit.name}
+      subtitle={a.sheetSubtitle(
+        [
+          a.phaseShort(phase.number),
+          habit.partOfDay !== "anytime" ? t.partsOfDay[habit.partOfDay] : null,
+          category?.name ?? null,
+          pct === null ? null : props.weakestId === habit.id ? a.percentWeakest(pct) : `${pct}%`,
+        ].filter((x): x is string => !!x),
+      )}
+      icon={EllipsisVertical}
+      items={items}
+    />
+  );
+}
+
+function phaseItems(props: PhaseSectionProps): ActionItem[] {
+  const p = t.phaseActions;
+  return [
+    {
+      label: p.addHabit,
+      description: p.addHabitHint(props.phase.number),
+      icon: Plus,
+      onSelect: props.onAddHabit,
+    },
+    { label: p.edit, description: p.editHint, icon: Pencil, onSelect: props.onEditPhase },
+    {
+      label: p.reorder,
+      description: p.reorderHint,
+      icon: GripVertical,
+      disabled: props.habits.length < 2 || props.dragDisabled,
+      onSelect: () => props.onReorder(true),
+    },
+    {
+      label: p.move,
+      description: p.moveHint,
+      icon: ChevronsUpDown,
+      disabled: props.isFirst && props.isLast,
+      children: [
+        {
+          label: p.moveUp,
+          icon: ArrowUp,
+          disabled: props.isFirst,
+          onSelect: () => props.onMovePhase("up"),
+        },
+        {
+          label: p.moveDown,
+          icon: ArrowDown,
+          disabled: props.isLast,
+          onSelect: () => props.onMovePhase("down"),
+        },
+      ],
+    },
+    {
+      label: p.delete,
+      description: p.deleteHint(props.totalCount),
+      icon: Trash2,
+      destructive: true,
+      separatorBefore: true,
+      onSelect: props.onDeletePhase,
+    },
+  ];
+}
+
+function StatusBadge({ phase, className }: { phase: Phase; className?: string }) {
+  return (
+    <Badge
+      variant={phase.status === "active" ? "default" : "secondary"}
+      className={cn("shrink-0", className)}
+    >
+      {!isUnlocked(phase) && <Lock aria-hidden />}
+      {copy.pages.data.phaseStatus[phase.status]}
+    </Badge>
   );
 }

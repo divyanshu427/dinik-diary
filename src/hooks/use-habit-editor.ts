@@ -42,6 +42,8 @@ export function useHabitEditor() {
     placeHabit: useOp(ops.placeHabit, getCtx),
     reorderHabit: useOp(ops.reorderHabit, getCtx),
     setArchived: useOp(ops.setHabitArchived, getCtx),
+    pauseHabit: useOp(ops.pauseHabit, getCtx),
+    resumeHabit: useOp(ops.resumeHabit, getCtx),
     deleteHabit: useOp(ops.deleteHabit, getCtx),
     createPhase: useOp(ops.createPhase, getCtx),
     updatePhase: useOp(ops.updatePhase, getCtx),

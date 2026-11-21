@@ -7,10 +7,12 @@ import {
   HabitLockedError,
   makeHabitKey,
   moveHabit,
+  pauseHabit,
   PhaseLockedError,
   placeHabit,
   reorderHabit,
   reorderPhase,
+  resumeHabit,
   setHabitArchived,
   updateHabit,
   type HabitDraft,
@@ -264,5 +266,37 @@ describe("phases", () => {
     await deletePhase(ctx, p3.id);
     const numbers = (await store.phases.list()).map((p) => p.number).sort();
     expect(numbers).toEqual([1, 2, 3, 4, 5]);
+  });
+});
+
+describe("pausing a habit", () => {
+  it("pauses from today for the chosen days, and resuming ends it yesterday", async () => {
+    const { store, ctx } = setup("2026-11-20");
+    const bath = (await store.habits.getByKey("bath"))!;
+    await pauseHabit(ctx, bath.id, 7);
+    expect((await store.habits.get(bath.id))!.pauses).toEqual([
+      { from: "2026-11-20", to: "2026-11-26" },
+    ]);
+
+    // Two days later: resume. The pause now covers only the days it really ran.
+    await resumeHabit({ ...ctx, today: "2026-11-22" }, bath.id);
+    expect((await store.habits.get(bath.id))!.pauses).toEqual([
+      { from: "2026-11-20", to: "2026-11-21" },
+    ]);
+  });
+
+  it("resuming on the first day removes the pause, and a new pause replaces a running one", async () => {
+    const { store, ctx } = setup("2026-11-20");
+    const bath = (await store.habits.getByKey("bath"))!;
+    await pauseHabit(ctx, bath.id, 3);
+    await resumeHabit(ctx, bath.id);
+    expect((await store.habits.get(bath.id))!.pauses).toEqual([]);
+
+    await pauseHabit(ctx, bath.id, 3);
+    await pauseHabit({ ...ctx, today: "2026-11-21" }, bath.id, 14);
+    expect((await store.habits.get(bath.id))!.pauses).toEqual([
+      { from: "2026-11-20", to: "2026-11-20" },
+      { from: "2026-11-21", to: "2026-12-04" },
+    ]);
   });
 });

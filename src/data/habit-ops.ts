@@ -1,4 +1,5 @@
 import {
+  addDays,
   planTargetChange,
   scoreEntry,
   targetOn,
@@ -347,4 +348,37 @@ export function deletePhase(ctx: OpsContext, id: string): Promise<void> {
       if (p.number !== i + 1) await store.phases.update(p.id, { number: i + 1 });
     }
   });
+}
+
+/**
+ * Pauses a habit for `days` days from today: it isn't due, so streaks and the phase average
+ * aren't hurt. Replaces any pause that's still running.
+ */
+export function pauseHabit(ctx: OpsContext, id: string, days: number): Promise<void> {
+  const { store, today } = ctx;
+  return store.atomically(async () => {
+    const habit = await store.habits.get(id);
+    if (!habit) return;
+    const pauses = endRunningPauses(habit, today);
+    await store.habits.update(id, {
+      pauses: [...pauses, { from: today, to: addDays(today, days - 1) }],
+    });
+  });
+}
+
+/** Ends a running pause: the habit is due again from today. */
+export function resumeHabit(ctx: OpsContext, id: string): Promise<void> {
+  const { store, today } = ctx;
+  return store.atomically(async () => {
+    const habit = await store.habits.get(id);
+    if (habit) await store.habits.update(id, { pauses: endRunningPauses(habit, today) });
+  });
+}
+
+/** Past pauses stay (they explain old days); one covering today now ends yesterday. */
+function endRunningPauses(habit: Habit, today: IsoDate) {
+  return habit.pauses
+    .filter((p) => p.from <= today || p.to < today)
+    .map((p) => (p.from <= today && today <= p.to ? { ...p, to: addDays(today, -1) } : p))
+    .filter((p) => p.from <= p.to);
 }

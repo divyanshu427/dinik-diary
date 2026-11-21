@@ -40,9 +40,12 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  sheetHandle = true,
   ...props
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean;
+  /** The grab bar at the top of the phone sheet (off for full-screen pages). */
+  sheetHandle?: boolean;
 }) {
   return (
     <DialogPortal>
@@ -57,10 +60,12 @@ function DialogContent({
         )}
         {...props}
       >
-        <div
-          aria-hidden
-          className="mx-auto h-1 w-10 rounded-full bg-muted-foreground/25 sm:hidden"
-        />
+        {sheetHandle && (
+          <div
+            aria-hidden
+            className="mx-auto h-1 w-10 rounded-full bg-muted-foreground/25 sm:hidden"
+          />
+        )}
         {children}
         {showCloseButton && (
           <DialogPrimitive.Close

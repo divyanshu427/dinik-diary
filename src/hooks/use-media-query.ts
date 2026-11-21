@@ -21,3 +21,6 @@ export function useMediaQuery(query: string): boolean {
 
 /** Laptop and up (Tailwind `xl`, 1280 px): side panels sit beside the main column. */
 export const WIDE_QUERY = "(min-width: 1280px)";
+
+/** Phones (below Tailwind `sm`, 640 px): menus open as bottom sheets. */
+export const PHONE_QUERY = "(max-width: 639px)";

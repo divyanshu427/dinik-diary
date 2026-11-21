@@ -22,9 +22,27 @@ async function expandPhase(page: Page, name: string) {
   await expect(toggle(page, name)).toHaveAttribute("aria-expanded", "true");
 }
 
-async function habitAction(page: Page, habit: string, action: string) {
-  await page.getByRole("button", { name: `Actions for ${habit}` }).click();
-  await page.getByRole("menuitem", { name: action }).click();
+/**
+ * Opens a habit's ⋯ menu and picks an item (and then a sub-item, e.g. "Reorder" → "Move down").
+ * A laptop submenu also opens on hover, so a click can close it again: if the last item never
+ * gets clicked, the menu is closed and the whole path is tried again (nothing was chosen yet).
+ */
+async function habitAction(page: Page, habit: string, ...path: string[]) {
+  await expect(async () => {
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: `Actions for ${habit}` }).click({ timeout: 3000 });
+    for (const action of path)
+      await page.getByRole("menuitem", { name: action }).click({ timeout: 3000 });
+  }).toPass();
+}
+
+/** Phones show drag handles only after "Reorder habits" in the phase's menu. */
+async function showHandles(page: Page, isMobile: boolean, phaseName: string) {
+  if (!isMobile) return;
+  await page.getByRole("button", { name: `Actions for phase ${phaseName}` }).click();
+  await page.getByRole("menuitem", { name: "Reorder habits" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(handle(page, "Bath").or(handle(page, "Workout or yoga")).first()).toBeVisible();
 }
 
 /** Drags with real pointer moves (dnd-kit needs movement to start a drag). */
@@ -78,7 +96,7 @@ test.describe("habits and phases editor", () => {
 
     // Move: locked phases are greyed out in the menu, unlocked ones work
     await page.getByRole("button", { name: "Actions for Lunch" }).click();
-    await page.getByRole("menuitem", { name: "Move to phase" }).click();
+    await page.getByRole("menuitem", { name: "Move to another phase" }).click();
     await expect(page.getByRole("menuitem", { name: new RegExp(P3) })).toHaveAttribute(
       "aria-disabled",
       "true",
@@ -105,8 +123,9 @@ test.describe("habits and phases editor", () => {
       await page.setViewportSize({ width, height: 2600 });
     });
 
-    test("drag a habit to a new position within its phase", async ({ page }) => {
+    test("drag a habit to a new position within its phase", async ({ page, isMobile }) => {
       await openHabits(page, P1);
+      await showHandles(page, isMobile, "Foundation");
       await expect(habitNames(page, P1).first()).toHaveText("Wake up on time");
       await drag(page, handle(page, "Bath"), phase(page, P1).getByRole("listitem").first(), "top");
       await expect(habitNames(page, P1).first()).toHaveText("Bath");
@@ -114,16 +133,18 @@ test.describe("habits and phases editor", () => {
       await expect(habitNames(page, P1).first()).toHaveText("Bath");
     });
 
-    test("drag a habit from Phase 2 into unlocked Phase 1", async ({ page }) => {
+    test("drag a habit from Phase 2 into unlocked Phase 1", async ({ page, isMobile }) => {
       await openHabits(page, P2); // Phase 1 stays collapsed: dropping on it adds to the end
+      await showHandles(page, isMobile, "Fitness and grooming");
       await drag(page, handle(page, "Workout or yoga"), toggle(page, P1));
       await expect(toggle(page, P1)).toHaveAttribute("aria-expanded", "true");
       await expect(habitNames(page, P1).last()).toHaveText("Workout or yoga");
       await expect(phase(page, P2).getByText("Workout or yoga")).toHaveCount(0);
     });
 
-    test("dropping into a locked phase is refused", async ({ page }) => {
+    test("dropping into a locked phase is refused", async ({ page, isMobile }) => {
       await openHabits(page, P2);
+      await showHandles(page, isMobile, "Fitness and grooming");
       await drag(page, handle(page, "Workout or yoga"), toggle(page, P3));
       await expect(page.getByRole("alert").filter({ hasText: "is locked" })).toContainText(
         `${P3} is locked. Habits can only be moved into unlocked phases.`,
@@ -133,8 +154,9 @@ test.describe("habits and phases editor", () => {
       await expect(phase(page, P3).getByText("Workout or yoga")).toHaveCount(0);
     });
 
-    test("move a habit with the keyboard", async ({ page }) => {
+    test("move a habit with the keyboard", async ({ page, isMobile }) => {
       await openHabits(page, P1);
+      await showHandles(page, isMobile, "Foundation");
       await handle(page, "Bath").focus();
       // Screen-reader announcements say where the habit is; wait for each one like a
       // screen-reader user would, instead of guessing delays.
@@ -155,7 +177,7 @@ test.describe("habits and phases editor", () => {
 
   test("delete a habit after confirming", async ({ page }) => {
     await openHabits(page, P1);
-    await habitAction(page, "Bath", "Delete");
+    await habitAction(page, "Bath", "Delete habit");
     await expect(page.getByRole("alertdialog")).toContainText("Delete “Bath”?");
     await page.getByRole("button", { name: "Delete habit" }).click();
     await expect(phase(page, P1).getByText("Bath", { exact: true })).toHaveCount(0);
@@ -192,9 +214,24 @@ test.describe("habits and phases editor", () => {
     await expect(d.getByText("Mon", { exact: true })).toBeVisible();
   });
 
+  test("pause a habit: it leaves Today's checklist until resumed", async ({ page }) => {
+    await openHabits(page, P1);
+    await habitAction(page, "Bath", "Pause habit", "For 3 days");
+    const bath = phase(page, P1).getByRole("button", { name: /^Bath/ });
+    await expect(bath).toContainText("Paused until");
+
+    await page.goto("/");
+    await expect(page.locator('[data-habit-row="Bath"]')).toHaveCount(0);
+    await expect(page.getByText("Not due today (1)")).toBeVisible();
+
+    await openHabits(page, P1);
+    await habitAction(page, "Bath", "Resume habit");
+    await expect(bath).not.toContainText("Paused until");
+  });
+
   test("reorder with the menu (no drag needed)", async ({ page }) => {
     await openHabits(page, P1);
-    await habitAction(page, "Wake up on time", "Move down");
+    await habitAction(page, "Wake up on time", "Reorder", "Move down");
     await expect(habitNames(page, P1).nth(0)).toHaveText("Water first thing in the morning");
     await expect(habitNames(page, P1).nth(1)).toHaveText("Wake up on time");
   });
@@ -207,7 +244,7 @@ test.describe("habits and phases editor", () => {
     await expect(phase(page, "Phase 6 · Summer goals")).toBeVisible();
 
     await page.getByRole("button", { name: "Actions for phase Summer goals" }).click();
-    await page.getByRole("menuitem", { name: "Rename" }).click();
+    await page.getByRole("menuitem", { name: "Edit phase" }).click();
     await dialog(page).getByLabel("Name").fill("Monsoon goals");
     await dialog(page).getByRole("button", { name: "Save changes" }).click();
     await expect(phase(page, "Phase 6 · Monsoon goals")).toBeVisible();

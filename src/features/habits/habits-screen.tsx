@@ -16,12 +16,24 @@ import {
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArchiveRestore, GripVertical, Plus, Trash2 } from "lucide-react";
+import {
+  Archive,
+  ArchiveRestore,
+  ArrowLeft,
+  GripVertical,
+  Pause,
+  Pencil,
+  Play,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { useMemo, useRef, useState } from "react";
+import { ActionMenu, type ActionItem } from "@/components/action-menu";
+import { PhoneBrand } from "@/components/app-shell/phone-brand";
 import { Cell, Dashboard } from "@/components/dashboard";
 import { PageHeader } from "@/components/page-header";
 import { StatTile } from "@/components/stat-tile";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,6 +66,8 @@ import {
 } from "@/hooks/use-data";
 import { useMediaQuery, WIDE_QUERY } from "@/hooks/use-media-query";
 import { useHabitEditor, useHabitLogCount } from "@/hooks/use-habit-editor";
+import { useBackToClose } from "@/hooks/use-back-to-close";
+import { formatShort } from "@/features/today/format";
 import { targetOn } from "@/lib/core";
 import { cn } from "@/lib/utils";
 import { emptyHabitForm, habitToForm } from "./habit-form";
@@ -114,6 +128,10 @@ export function HabitsScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   /** Phones and tablets: habit details open in a dialog instead of a side panel. */
   const [detailOpen, setDetailOpen] = useState(false);
+  /** Phones: the phase whose drag handles are showing (turned on from its menu). */
+  const [reorderingId, setReorderingId] = useState<string | null>(null);
+  // Android's back gesture closes the habit details instead of leaving the page.
+  useBackToClose(detailOpen, () => setDetailOpen(false));
   // Drag events can fire faster than React re-renders, so handlers read the latest drag state
   // from a ref. Both are only ever written together, inside event handlers (commitDrag).
   const dragRef = useRef<DragState | null>(null);
@@ -423,15 +441,59 @@ export function HabitsScreen() {
     />
   );
 
+  /** The ⋯ menu in the habit details header (phones and tablets). */
+  const detailMenu = (habit: Habit): ActionItem[] => {
+    const a = t.actions;
+    const pause = habit.pauses.find((p) => p.from <= todayDate && todayDate <= p.to);
+    return [
+      pause
+        ? {
+            label: a.resume,
+            description: a.resumeHint(formatShort(pause.to)),
+            icon: Play,
+            onSelect: () => run(() => editor.resumeHabit.mutateAsync([habit.id])),
+          }
+        : {
+            label: a.pause,
+            description: a.pauseHint,
+            icon: Pause,
+            children: [3, 7, 14].map((days) => ({
+              label: a.pauseFor[days],
+              onSelect: () => run(() => editor.pauseHabit.mutateAsync([habit.id, days])),
+            })),
+          },
+      {
+        label: a.archive,
+        description: a.archiveHint,
+        icon: Archive,
+        onSelect: () => {
+          setDetailOpen(false);
+          void run(() => editor.setArchived.mutateAsync([habit.id, true]));
+        },
+      },
+      {
+        label: a.deleteHabit,
+        description: a.deleteHint,
+        icon: Trash2,
+        destructive: true,
+        separatorBefore: true,
+        onSelect: () => setConfirm({ kind: "habit", habit }),
+      },
+    ];
+  };
+
   return (
     <>
+      <PhoneBrand />
       <PageHeader
         eyebrow={loaded ? t.headerSummary(activeHabits.length, waiting) : undefined}
         title={t.title}
         subtitle={t.subtitle}
         actions={
-          <div className="flex flex-wrap gap-2">
+          // Phones: two big buttons side by side. Wider: a row of normal buttons.
+          <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:gap-2">
             <Button
+              className="max-sm:h-12 max-sm:rounded-xl max-sm:text-base"
               onClick={() =>
                 defaultPhaseId && setHabitDialog({ mode: "create", phaseId: defaultPhaseId })
               }
@@ -442,6 +504,7 @@ export function HabitsScreen() {
             </Button>
             <Button
               variant="outline"
+              className="max-sm:h-12 max-sm:rounded-xl max-sm:text-base"
               onClick={() => setPhaseDialog({ mode: "create" })}
               disabled={!loaded}
             >
@@ -571,6 +634,15 @@ export function HabitsScreen() {
                   isFirst={i === 0}
                   isLast={i === phaseList.length - 1}
                   onToggle={() => openPhases.toggle(phase.id)}
+                  reordering={reorderingId === phase.id}
+                  onReorder={(on) => {
+                    setReorderingId(on ? phase.id : null);
+                    if (on) openPhases.expand(phase.id);
+                  }}
+                  onPauseHabit={(habit, days) =>
+                    run(() => editor.pauseHabit.mutateAsync([habit.id, days]))
+                  }
+                  onResumeHabit={(habit) => run(() => editor.resumeHabit.mutateAsync([habit.id]))}
                   onAddHabit={() => setHabitDialog({ mode: "create", phaseId: phase.id })}
                   onEditPhase={() => setPhaseDialog({ mode: "edit", phase })}
                   onMovePhase={(dir) => run(() => editor.reorderPhase.mutateAsync([phase.id, dir]))}
@@ -670,10 +742,43 @@ export function HabitsScreen() {
 
       {!wide && selected && (
         <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-          <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>{selected.name}</DialogTitle>
-            </DialogHeader>
+          {/* Phones: a full-screen page with a back arrow. Tablets: a centred dialog. */}
+          <DialogContent
+            showCloseButton={false}
+            sheetHandle={false}
+            className="max-h-[90dvh] overflow-y-auto max-sm:top-0 max-sm:h-dvh max-sm:max-h-dvh max-sm:content-start max-sm:rounded-none max-sm:pt-[calc(0.75rem+env(safe-area-inset-top))] sm:max-w-lg max-sm:data-open:slide-in-from-bottom-0 max-sm:data-open:slide-in-from-right max-sm:data-closed:slide-out-to-bottom-0 max-sm:data-closed:slide-out-to-right"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={copy.common.back}
+                onClick={() => setDetailOpen(false)}
+              >
+                <ArrowLeft aria-hidden />
+              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setHabitDialog({ mode: "edit", habit: selected })}
+                >
+                  <Pencil aria-hidden />
+                  {t.detail.edit}
+                </Button>
+                <ActionMenu
+                  label={t.actions.more(selected.name)}
+                  title={selected.name}
+                  items={detailMenu(selected)}
+                  triggerClassName="size-9 border"
+                />
+              </div>
+            </div>
+            <div>
+              <DialogTitle className="font-heading text-2xl leading-tight font-bold sm:text-xl">
+                {selected.name}
+              </DialogTitle>
+              <DialogDescription className="sr-only">{t.detail.title}</DialogDescription>
+            </div>
             {detailFor(selected, true)}
           </DialogContent>
         </Dialog>

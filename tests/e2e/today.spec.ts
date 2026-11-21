@@ -97,9 +97,9 @@ test.describe("Today screen", () => {
     await page.goto("/habits");
     const p1 = page.getByRole("region", { name: "Phase 1 · Foundation" });
     await p1.locator('button[aria-controls^="phase-list-"]').click();
-    await expect(p1.getByRole("button", { name: /^Bath/ }).locator("xpath=..")).toContainText(
-      "100%",
-    );
+    await expect(
+      p1.getByRole("button", { name: /^Bath/ }).locator("xpath=ancestor::li[1]"),
+    ).toContainText("100%");
   });
 });
 
