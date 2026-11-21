@@ -23,9 +23,9 @@ describe("starter data", () => {
     ]);
   });
 
-  it("puts 10 habits in Phase 1, with brush and face wash split into morning and night", () => {
+  it("puts 11 habits in Phase 1 (water goal included), with brush and face wash split into morning and night", () => {
     const phase1 = seed.habits.filter((h) => h.phaseId === seed.phases[0].id);
-    expect(phase1).toHaveLength(10);
+    expect(phase1).toHaveLength(11);
     expect(phase1.map((h) => h.key)).toEqual(
       expect.arrayContaining([
         "brush_morning",

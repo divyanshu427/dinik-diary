@@ -72,3 +72,53 @@ describe("database upgrade to version 3 (phase history and target upgrades)", ()
     expect(byId.get("p3")).toMatchObject({ history: [], targetUpgrades: [] });
   });
 });
+
+describe("database upgrade to version 7 (water goal joins Phase 1)", () => {
+  async function oldDatabase(waterPhase: "p1" | "p3", p3Status = "locked") {
+    const name = `upgrade7-${Math.random().toString(36).slice(2)}`;
+    const old = new Dexie(name);
+    old.version(6).stores(STORES_V1);
+    await old.table("phases").bulkAdd([
+      {
+        id: "p1",
+        number: 1,
+        name: "Foundation",
+        status: "active",
+        history: [],
+        targetUpgrades: [],
+      },
+      {
+        id: "p3",
+        number: 3,
+        name: "Sleep and mind",
+        status: p3Status,
+        history: [],
+        targetUpgrades: [],
+      },
+    ]);
+    await old.table("habits").bulkAdd([
+      { id: "w", key: "wake_up", name: "Wake up on time", phaseId: "p1", sortOrder: 0 },
+      { id: "m", key: "morning_water", name: "Water first thing", phaseId: "p1", sortOrder: 1 },
+      { id: "b", key: "healthy_breakfast", name: "Healthy breakfast", phaseId: "p1", sortOrder: 2 },
+      { id: "g", key: "water_goal", name: "Water goal", phaseId: waterPhase, sortOrder: 6 },
+    ]);
+    old.close();
+    return createLocalDataStore({ dbName: name });
+  }
+
+  it("moves the starter water goal from a locked phase to Phase 1, after morning water", async () => {
+    const store = await oldDatabase("p3");
+    const phase1 = (await store.habits.listByPhase("p1")).sort((a, b) => a.sortOrder - b.sortOrder);
+    expect(phase1.map((h) => h.key)).toEqual([
+      "wake_up",
+      "morning_water",
+      "water_goal",
+      "healthy_breakfast",
+    ]);
+  });
+
+  it("leaves it alone once its phase has started (someone may have chosen that)", async () => {
+    const store = await oldDatabase("p3", "active");
+    expect((await store.habits.get("g"))?.phaseId).toBe("p3");
+  });
+});

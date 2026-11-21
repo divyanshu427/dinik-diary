@@ -11,20 +11,20 @@ async function openToday(page: Page) {
 test.describe("Today screen", () => {
   test("tick 3 habits: the ring updates and ticks survive a reload", async ({ page }) => {
     await openToday(page);
-    await expect(page.getByRole("img", { name: "0 of 10 done" })).toBeVisible();
+    await expect(page.getByRole("img", { name: "0 of 11 done" })).toBeVisible();
 
     for (const name of ["Bath", "Brush teeth — morning", "Healthy breakfast"])
       await box(page, name).click();
-    await expect(page.getByRole("img", { name: "3 of 10 done" })).toBeVisible();
+    await expect(page.getByRole("img", { name: "3 of 11 done" })).toBeVisible();
     await expect(box(page, "Bath")).toHaveAttribute("aria-checked", "true");
 
     await page.reload();
-    await expect(page.getByRole("img", { name: "3 of 10 done" })).toBeVisible();
+    await expect(page.getByRole("img", { name: "3 of 11 done" })).toBeVisible();
     await expect(box(page, "Bath")).toHaveAttribute("aria-checked", "true");
 
     // Unticking works too.
     await box(page, "Bath").click();
-    await expect(page.getByRole("img", { name: "2 of 10 done" })).toBeVisible();
+    await expect(page.getByRole("img", { name: "2 of 11 done" })).toBeVisible();
   });
 
   test("steps: quick add, then a partial total shows as partial", async ({ page }) => {
@@ -44,6 +44,19 @@ test.describe("Today screen", () => {
     await steps.getByLabel("Total for Daily steps").fill("5200");
     await steps.getByRole("button", { name: "Save" }).click();
     await expect(steps.getByRole("img", { name: "Done", exact: true })).toBeVisible();
+  });
+
+  test("water goal: 3 L from day one, filled from Your numbers", async ({ page }) => {
+    await openToday(page);
+    const water = row(page, "Water goal");
+    await expect(water).toContainText("0 / 3 L");
+    const litres = page.getByRole("region", { name: "Your numbers" }).getByLabel("Water", {
+      exact: true,
+    });
+    await litres.fill("2");
+    await litres.blur();
+    await expect(water).toContainText("2 / 3 L");
+    await expect(water.getByRole("img", { name: "Partly done" })).toBeVisible();
   });
 
   test("wake-up time: 7:40 is shown as 10 minutes late", async ({ page }) => {

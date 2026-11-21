@@ -127,17 +127,18 @@ Phases control **which habits appear on my daily checklist**. Only the current p
 
 > **Nothing here is hardcoded.** These lists are the **default seed** loaded on first run. From the Habits screen I can add, edit, remove, archive, reorder or move any habit to any phase, and add/rename phases.
 
-### Phase 1 — Foundation (10 habits)
+### Phase 1 — Foundation (11 habits)
 1. Wake up at target time *(time-based, default 7:30 AM)*
 2. Water first thing in the morning *(boolean)*
-3. Healthy breakfast *(boolean)*
-4. Bath *(boolean)*
-5. Brush teeth — morning *(boolean)*
-6. Brush teeth — night *(boolean)*
-7. Skincare — morning face wash *(boolean)*
-8. Skincare — night face wash *(boolean)*
-9. 5,000 steps *(numeric)*
-10. In bed by fixed time *(time-based, default 11:30 PM)*
+3. Water goal, 3 L *(numeric, fills from the Water number; moved here from Phase 3 on 2026-11-21)*
+4. Healthy breakfast *(boolean)*
+5. Bath *(boolean)*
+6. Brush teeth — morning *(boolean)*
+7. Brush teeth — night *(boolean)*
+8. Skincare — morning face wash *(boolean)*
+9. Skincare — night face wash *(boolean)*
+10. 5,000 steps *(numeric)*
+11. In bed by fixed time *(time-based, default 11:30 PM)*
 
 Time-based habits default to a **15-minute grace window** (up to 15 min late = 50%). Targets and grace are editable per habit.
 
@@ -160,8 +161,7 @@ Lunch and dinner are **not** habits by default. They are logged as activities un
 4. Screen-time limit respected
 5. No doomscrolling / reel-scrolling limit
 6. Fruits and vegetables
-7. Water goal (about 3 L)
-8. No late-night junk food
+7. No late-night junk food
 
 ### Phase 4 — Work and growth
 1. Top 3 priorities done

@@ -84,7 +84,8 @@ const DAILY: HabitSchedule = { kind: "daily" };
 export const PHASE_SEEDS: readonly PhaseSeed[] = [
   {
     name: "Foundation",
-    description: "The basics: wake up, hygiene, breakfast, a short walk and a fixed bedtime.",
+    description:
+      "The basics: wake up, water, hygiene, breakfast, a short walk and a fixed bedtime.",
     habits: [
       {
         key: "wake_up",
@@ -100,6 +101,15 @@ export const PHASE_SEEDS: readonly PhaseSeed[] = [
         name: "Water first thing in the morning",
         type: "boolean",
         category: "meals",
+      },
+      {
+        key: "water_goal",
+        name: "Water goal",
+        type: "numeric",
+        category: "meals",
+        target: 3,
+        unit: "L",
+        metricKey: "water",
       },
       { key: "healthy_breakfast", name: "Healthy breakfast", type: "boolean", category: "meals" },
       { key: "bath", name: "Bath", type: "boolean", category: "grooming" },
@@ -236,15 +246,6 @@ export const PHASE_SEEDS: readonly PhaseSeed[] = [
         name: "Fruits and vegetables",
         type: "boolean",
         category: "meals",
-      },
-      {
-        key: "water_goal",
-        name: "Water goal",
-        type: "numeric",
-        category: "meals",
-        target: 3,
-        unit: "L",
-        metricKey: "water",
       },
       { key: "no_late_junk", name: "No late-night junk food", type: "boolean", category: "meals" },
     ],

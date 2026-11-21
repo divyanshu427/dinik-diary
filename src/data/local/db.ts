@@ -149,6 +149,31 @@ export class DinikDb extends Dexie {
             s.backupReminderDays ??= 7;
           }),
       );
+    // Version 7 (2026-11-21): the starter "Water goal" (3 L) moved from Phase 3 to Phase 1.
+    // Existing databases get the same move, but only while it's still where the starter data
+    // put it (a locked phase, not Phase 1): a habit someone moved themselves stays put.
+    this.version(7)
+      .stores(STORES_V5)
+      .upgrade(async (tx) => {
+        const habits = tx.table<Habit>("habits");
+        const water = await habits.where("key").equals("water_goal").first();
+        if (!water || water.archived) return;
+        const phases = await tx.table<Phase>("phases").toArray();
+        const phase1 = phases.find((p) => p.number === 1);
+        const current = phases.find((p) => p.id === water.phaseId);
+        if (!phase1 || !current || current.id === phase1.id || current.status !== "locked") return;
+
+        // Right after "Water first thing in the morning" (or at the end of Phase 1).
+        const list = (await habits.where("phaseId").equals(phase1.id).toArray()).sort(
+          (a, b) => a.sortOrder - b.sortOrder,
+        );
+        const after = list.findIndex((h) => h.key === "morning_water");
+        list.splice(after >= 0 ? after + 1 : list.length, 0, water);
+        for (const [i, h] of list.entries()) {
+          const patch = h.id === water.id ? { phaseId: phase1.id, sortOrder: i } : { sortOrder: i };
+          await habits.update(h.id, patch);
+        }
+      });
   }
 
   /** Every table, for "clear everything" operations. */

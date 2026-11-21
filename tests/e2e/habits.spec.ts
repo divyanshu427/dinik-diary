@@ -162,12 +162,12 @@ test.describe("habits and phases editor", () => {
       // screen-reader user would, instead of guessing delays.
       const announced = page.locator('[id^="DndLiveRegion"]');
       await page.keyboard.press("Space");
-      await expect(announced).toHaveText(/Bath is at position 4 of 10/); // picked up
+      await expect(announced).toHaveText(/Bath is at position 5 of 11/); // picked up
       // dnd-kit starts listening for arrow keys a few ms after pick-up; no person is that fast.
       await page.waitForTimeout(100);
-      for (const position of [3, 2, 1]) {
+      for (const position of [4, 3, 2, 1]) {
         await page.keyboard.press("ArrowUp");
-        await expect(announced).toHaveText(new RegExp(`Bath is at position ${position} of 10`));
+        await expect(announced).toHaveText(new RegExp(`Bath is at position ${position} of 11`));
       }
       await page.keyboard.press("Space");
       await expect(page.getByTestId("drag-preview")).toHaveCount(0);

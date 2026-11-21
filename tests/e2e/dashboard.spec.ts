@@ -76,7 +76,7 @@ test.describe("laptop dashboard layout", () => {
 test.describe("filters and part of day", () => {
   test("the Night filter shows only night habits and switches dragging off", async ({ page }) => {
     await openHabits(page);
-    await expect(page.getByText("10 active habits, 30 more waiting in later phases")).toBeVisible();
+    await expect(page.getByText("11 active habits, 29 more waiting in later phases")).toBeVisible();
 
     await page
       .getByRole("group", { name: "Filter habits" })
@@ -94,7 +94,7 @@ test.describe("filters and part of day", () => {
       .getByRole("group", { name: "Filter habits" })
       .getByRole("button", { name: "All" })
       .click();
-    await expect(names(page)).toHaveCount(10);
+    await expect(names(page)).toHaveCount(11);
   });
 
   test("part of day can be changed and shows on the habit", async ({ page }) => {
