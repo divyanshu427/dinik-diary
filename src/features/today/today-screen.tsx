@@ -291,17 +291,7 @@ export function TodayScreen() {
   return (
     <>
       <PageHeader
-        eyebrow={
-          // Phones: the current phase sits under the date. Laptop: beside the date controls.
-          <span className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-            {formatLongDate(date)}
-            {activePhases.map((p) => (
-              <Badge key={p.id} variant="secondary" className="max-w-full truncate md:hidden">
-                {phaseLabel(p)}
-              </Badge>
-            ))}
-          </span>
-        }
+        eyebrow={formatLongDate(date)}
         title={dayTitle(date, today!, { today: t.title, yesterday: t.yesterday })}
         inlineActions
         actions={

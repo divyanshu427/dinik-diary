@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { copy } from "@/copy";
 import { PwaRegister } from "@/components/pwa";
 import { BottomTabs } from "./bottom-tabs";
+import { PageHelpButton } from "./page-help";
 import { PhoneBrand } from "./phone-brand";
 import { DemoBanner } from "./demo-banner";
 import { Sidebar } from "./sidebar";
@@ -28,7 +29,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           tabIndex={-1}
           className="mx-auto w-full max-w-[1600px] flex-1 px-4 pt-6 pb-28 outline-none sm:px-6 md:pt-8 md:pb-10 lg:px-8"
         >
-          <PhoneBrand />
+          <PhoneBrand>
+            <PageHelpButton />
+          </PhoneBrand>
           {children}
         </main>
       </div>

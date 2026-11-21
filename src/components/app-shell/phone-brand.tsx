@@ -20,7 +20,7 @@ export function PhoneBrand({ children }: { children?: ReactNode }) {
           {brand.name}
         </span>
       </Link>
-      {children && <div className="flex min-w-0 flex-wrap justify-end gap-1.5">{children}</div>}
+      {children && <div className="flex shrink-0 items-center">{children}</div>}
     </div>
   );
 }

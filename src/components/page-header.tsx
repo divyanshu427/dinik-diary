@@ -1,6 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { PageHelpButton } from "@/components/app-shell/page-help";
 import { cn } from "@/lib/utils";
 
 interface PageHeaderProps {
@@ -49,7 +50,11 @@ export function PageHeader({
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
       </div>
-      {actions && <div className="shrink-0">{actions}</div>}
+      {/* Phones: the wrapper melts away (`contents`) and the ⓘ lives in the logo row instead. */}
+      <div className="flex shrink-0 items-end gap-2 max-md:contents">
+        {actions && <div className="shrink-0">{actions}</div>}
+        <PageHelpButton className="max-md:hidden" />
+      </div>
     </header>
   );
 }
