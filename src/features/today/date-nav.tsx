@@ -28,7 +28,7 @@ export function DateNav({
       >
         <ChevronLeft aria-hidden />
       </Button>
-      <span className="relative flex size-9 items-center justify-center rounded-lg border-x has-focus-visible:ring-3 has-focus-visible:ring-ring/50">
+      <span className="relative flex size-9 items-center justify-center overflow-hidden rounded-lg border-x has-focus-visible:ring-3 has-focus-visible:ring-ring/50">
         <CalendarDays aria-hidden className="size-4" />
         <input
           type="date"
@@ -43,7 +43,7 @@ export function DateNav({
               // Older browsers open the picker on their own.
             }
           }}
-          className="absolute inset-0 cursor-pointer opacity-0"
+          className="absolute inset-0 size-full min-w-0 cursor-pointer appearance-none opacity-0"
         />
       </span>
       <Button
