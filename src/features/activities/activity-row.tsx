@@ -1,14 +1,7 @@
 "use client";
 
-import { Copy, Ellipsis, Pencil, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Copy, EllipsisVertical, Pencil, Trash2 } from "lucide-react";
+import { ActionMenu, type ActionItem } from "@/components/action-menu";
 import { copy } from "@/copy";
 import type { Activity, Category } from "@/data/schema";
 import { formatClock } from "@/features/today/format";
@@ -50,8 +43,7 @@ export function ActivityRow({
       className={cn("flex items-start gap-3", compact ? "px-4 py-2.5" : "px-4 py-3")}
       data-activity={a.title}
     >
-      {/* Laptop/tablet: a time column. Phones: the time goes in the line under the title. */}
-      <span className="hidden w-[4.75rem] shrink-0 pt-0.5 text-sm whitespace-nowrap text-muted-foreground tabular-nums sm:block">
+      <span className="w-[4.25rem] shrink-0 pt-0.5 text-sm whitespace-nowrap text-muted-foreground tabular-nums sm:w-[4.75rem]">
         {time}
       </span>
       <span
@@ -65,17 +57,7 @@ export function ActivityRow({
         className="min-w-0 flex-1 rounded-md text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         <span className="block font-medium">{a.title}</span>
-        {(details || a.startTime) && (
-          <span className="block text-sm text-muted-foreground">
-            {a.startTime && (
-              <span className="sm:hidden">
-                {time}
-                {details && " · "}
-              </span>
-            )}
-            {details}
-          </span>
-        )}
+        {details && <span className="block text-sm text-muted-foreground">{details}</span>}
         {!compact && a.tags.length > 0 && (
           <span className="mt-1 flex flex-wrap gap-1">
             {a.tags.map((tag) => (
@@ -102,37 +84,51 @@ export function ActivityRow({
   );
 }
 
-/** The ⋯ menu of an entry: edit, copy to today, delete. */
+/** The ⋮ menu of an entry: edit, copy to today, delete (a bottom sheet on phones). */
 export function ActivityMenu({
   activity: a,
   onEdit,
   onDelete,
   onDuplicate,
 }: Pick<ActivityRowProps, "activity" | "onEdit" | "onDelete" | "onDuplicate">) {
+  const items: ActionItem[] = [
+    {
+      label: t.actions.edit,
+      description: t.actions.editHint,
+      icon: Pencil,
+      onSelect: () => onEdit(a),
+    },
+    ...(onDuplicate
+      ? [
+          {
+            label: t.actions.duplicate,
+            description: t.actions.duplicateHint,
+            icon: Copy,
+            onSelect: () => onDuplicate(a),
+          },
+        ]
+      : []),
+    {
+      label: t.actions.delete,
+      description: t.actions.deleteHint,
+      icon: Trash2,
+      destructive: true,
+      separatorBefore: true,
+      onSelect: () => onDelete(a),
+    },
+  ];
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={<Button variant="ghost" size="icon-sm" aria-label={t.actions.more(a.title)} />}
-      >
-        <Ellipsis aria-hidden />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-auto min-w-44">
-        <DropdownMenuItem onClick={() => onEdit(a)}>
-          <Pencil aria-hidden />
-          {t.actions.edit}
-        </DropdownMenuItem>
-        {onDuplicate && (
-          <DropdownMenuItem onClick={() => onDuplicate(a)}>
-            <Copy aria-hidden />
-            {t.actions.duplicate}
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onClick={() => onDelete(a)}>
-          <Trash2 aria-hidden />
-          {t.actions.delete}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <ActionMenu
+      label={t.actions.more(a.title)}
+      title={a.title}
+      subtitle={[
+        a.startTime ? formatClock(a.startTime) : t.noTime,
+        a.durationMinutes != null ? formatDuration(a.durationMinutes) : null,
+      ]
+        .filter(Boolean)
+        .join(" · ")}
+      icon={EllipsisVertical}
+      items={items}
+    />
   );
 }

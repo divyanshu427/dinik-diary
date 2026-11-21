@@ -1,6 +1,14 @@
 "use client";
 
-import { Archive, ArchiveRestore, Combine, Ellipsis, Pencil, Plus, Trash2 } from "lucide-react";
+import {
+  Archive,
+  ArchiveRestore,
+  Combine,
+  EllipsisVertical,
+  Pencil,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { useState, type FormEvent } from "react";
 import {
   AlertDialog,
@@ -20,13 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ActionMenu } from "@/components/action-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
@@ -67,29 +69,41 @@ export function CategoryManager(props: CategoryManagerProps) {
   const [dialog, setDialog] = useState<Dialogs>(null);
   const active = categories.filter((c) => !c.archived);
   const archived = categories.filter((c) => c.archived);
+  // Used by activities or habits first; the rest are waiting to be used.
+  const inUse = active.filter((c) => (usage.get(c.id) ?? 0) > 0);
+  const unused = active.filter((c) => (usage.get(c.id) ?? 0) === 0);
+  const group = (title: string, list: readonly Category[]) =>
+    list.length > 0 && (
+      <div>
+        <p className="mb-1 flex justify-between text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+          <span>{title}</span>
+          <span className="tabular-nums">{list.length}</span>
+        </p>
+        <ul className="-mx-2 flex flex-col">
+          {list.map((c) => (
+            <CategoryItem
+              key={c.id}
+              category={c}
+              entries={entries.get(c.id) ?? 0}
+              onOpen={setDialog}
+              onArchive={props.onArchive}
+            />
+          ))}
+        </ul>
+      </div>
+    );
 
   return (
-    <div className="flex flex-col gap-3">
-      <ul className="-mx-2 flex flex-col">
-        {active.map((c) => (
-          <CategoryItem
-            key={c.id}
-            category={c}
-            entries={entries.get(c.id) ?? 0}
-            onOpen={setDialog}
-            onArchive={props.onArchive}
-          />
-        ))}
-      </ul>
+    <div className="flex flex-col gap-4">
       <Button
-        variant="outline"
-        size="sm"
-        className="self-start"
+        className="max-md:h-12 max-md:rounded-xl max-md:text-base md:self-start"
         onClick={() => setDialog({ kind: "form" })}
       >
         <Plus aria-hidden />
         {t.add}
       </Button>
+      {group(t.inUse, inUse)}
+      {group(t.unused, unused)}
       {archived.length > 0 && (
         <details className="text-sm">
           <summary className="cursor-pointer text-muted-foreground">
@@ -173,53 +187,66 @@ function CategoryItem({
   onOpen: (d: Dialogs) => void;
   onArchive: CategoryManagerProps["onArchive"];
 }) {
+  const a = t.actions;
   return (
     <li
-      className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted/60"
+      className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-muted/60 max-md:py-2.5"
       data-category={c.name}
     >
       <span
         aria-hidden
-        className="size-3 shrink-0 rounded-sm"
+        className="size-3 shrink-0 rounded-full"
         style={{ background: categoryColor(c) }}
       />
       <span
-        className={cn("min-w-0 flex-1 truncate text-sm", c.archived && "text-muted-foreground")}
+        className={cn(
+          "min-w-0 flex-1 truncate text-sm max-md:text-base",
+          c.archived && "text-muted-foreground",
+        )}
       >
         {c.name}
       </span>
-      <span className="text-xs text-muted-foreground tabular-nums">{t.entries(entries)}</span>
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={<Button variant="ghost" size="icon-xs" aria-label={t.actions.more(c.name)} />}
-        >
-          <Ellipsis aria-hidden />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-auto min-w-44">
-          <DropdownMenuItem onClick={() => onOpen({ kind: "form", category: c })}>
-            <Pencil aria-hidden />
-            {t.actions.edit}
-          </DropdownMenuItem>
-          {!c.archived && (
-            <DropdownMenuItem onClick={() => onOpen({ kind: "merge", category: c })}>
-              <Combine aria-hidden />
-              {t.actions.merge}
-            </DropdownMenuItem>
-          )}
-          <DropdownMenuItem onClick={() => void onArchive(c.id, !c.archived)}>
-            {c.archived ? <ArchiveRestore aria-hidden /> : <Archive aria-hidden />}
-            {c.archived ? t.actions.restore : t.actions.archive}
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            variant="destructive"
-            onClick={() => onOpen({ kind: "delete", category: c })}
-          >
-            <Trash2 aria-hidden />
-            {t.actions.delete}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <span className="text-xs text-muted-foreground tabular-nums max-md:text-sm">
+        {t.entries(entries)}
+      </span>
+      <ActionMenu
+        label={a.more(c.name)}
+        title={c.name}
+        subtitle={t.entries(entries)}
+        icon={EllipsisVertical}
+        items={[
+          {
+            label: a.edit,
+            description: a.editHint,
+            icon: Pencil,
+            onSelect: () => onOpen({ kind: "form", category: c }),
+          },
+          ...(!c.archived
+            ? [
+                {
+                  label: a.merge,
+                  description: a.mergeHint,
+                  icon: Combine,
+                  onSelect: () => onOpen({ kind: "merge", category: c }),
+                },
+              ]
+            : []),
+          {
+            label: c.archived ? a.restore : a.archive,
+            description: c.archived ? a.restoreHint : a.archiveHint,
+            icon: c.archived ? ArchiveRestore : Archive,
+            onSelect: () => void onArchive(c.id, !c.archived),
+          },
+          {
+            label: a.delete,
+            description: a.deleteHint,
+            icon: Trash2,
+            destructive: true,
+            separatorBefore: true,
+            onSelect: () => onOpen({ kind: "delete", category: c }),
+          },
+        ]}
+      />
     </li>
   );
 }

@@ -4,6 +4,12 @@ const dialog = (page: Page) => page.getByRole("dialog");
 const entry = (page: Page, title: string) => page.locator(`[data-activity="${title}"]`);
 const chips = (page: Page) => page.getByRole("group", { name: "Filter activities" });
 
+/** Phones split Activities into tabs; on a laptop every section is already showing. */
+async function showTab(page: Page, name: "Entries" | "Breakdown" | "Categories") {
+  const tab = page.getByRole("tab", { name });
+  if (await tab.isVisible()) await tab.click();
+}
+
 async function logActivity(
   page: Page,
   fields: {
@@ -55,7 +61,7 @@ test.describe("activities", () => {
     const fort = entry(page, "Visited the fort");
     await expect(fort).toContainText("Travel and exploration · Fort");
     await expect(fort).toContainText("2 h");
-    await expect(page.getByText("This period: 2 entries, 2 h 30 min logged")).toBeVisible();
+    await expect(page.getByText("This week: 2 entries, 2 h 30 min logged")).toBeVisible();
 
     await chips(page).getByRole("button", { name: "Travel" }).click();
     await expect(fort).toBeVisible();
@@ -115,6 +121,7 @@ test.describe("activities", () => {
 
   test("add a category and merge it into another", async ({ page }) => {
     await openActivities(page);
+    await showTab(page, "Categories");
     const cats = page.getByRole("region", { name: "Categories" });
     await cats.getByRole("button", { name: "Add category" }).click();
     await dialog(page).getByLabel("Name").fill("Volunteering");
@@ -124,14 +131,44 @@ test.describe("activities", () => {
 
     await page.getByRole("button", { name: "Log activity" }).first().click();
     await logActivity(page, { title: "Beach clean-up", category: "Volunteering", duration: "90" });
+    await showTab(page, "Entries");
     await expect(entry(page, "Beach clean-up")).toContainText("Volunteering");
 
+    await showTab(page, "Categories");
     await cats.getByRole("button", { name: "Actions for Volunteering" }).click();
     await page.getByRole("menuitem", { name: "Merge into…" }).click();
     await dialog(page).getByLabel("Merge into").selectOption({ label: "Social and family" });
     await dialog(page).getByRole("button", { name: "Merge" }).click();
     await expect(cats.locator('[data-category="Volunteering"]')).toHaveCount(0);
+    await showTab(page, "Entries");
     await expect(entry(page, "Beach clean-up")).toContainText("Social and family");
+  });
+});
+
+test.describe("activities on a phone", () => {
+  test.skip(({ isMobile }) => !isMobile, "phone only");
+
+  test("tabs split the page; tapping a category in Breakdown shows its entries", async ({
+    page,
+  }) => {
+    await openActivities(page);
+    await page.getByRole("button", { name: "Log activity" }).first().click();
+    await logActivity(page, { title: "Walk", category: "Fitness and exercise", duration: "30" });
+    await page.getByRole("button", { name: "Log activity" }).first().click();
+    await logActivity(page, { title: "Lunch out", category: "Meals and food", duration: "45" });
+
+    await expect(page.getByRole("heading", { level: 2, name: "Time by category" })).toBeHidden();
+    await showTab(page, "Breakdown");
+    await expect(page.getByRole("heading", { level: 2, name: "Time by category" })).toBeVisible();
+    await expect(entry(page, "Walk")).toBeHidden();
+
+    await page.getByRole("button", { name: "Show Fitness and exercise entries" }).click();
+    await expect(page.getByRole("tab", { name: "Entries" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(entry(page, "Walk")).toBeVisible();
+    await expect(entry(page, "Lunch out")).toHaveCount(0);
   });
 });
 
