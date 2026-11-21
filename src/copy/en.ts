@@ -512,6 +512,9 @@ export const en = {
       loadError: "Couldn't load your phases.",
       failed: (message: string) => `Couldn't save: ${message}`,
       addPhase: "Add a custom phase",
+      addPhaseShort: "Custom phase",
+      upNext: "Up next",
+      completed: "Completed",
       addPhaseHint: "Group habits to start later. Add habits to it on the Habits screen.",
       active: {
         title: "Current phase",
@@ -519,11 +522,10 @@ export const en = {
           `Active since ${date} · ${habits} ${habits === 1 ? "habit" : "habits"} on your checklist`,
         pausedSince: (date: string) => `Paused since ${date}`,
         progressLabel: (window: number) => `${window}-day average`,
-        target: (pct: number) => `target ${pct}%`,
         barLabel: (avg: number, target: number) => `Average ${avg}%, target ${target}%`,
         day: (day: number, window: number) => `Day ${day} of ${window}`,
-        logged: (n: number, min: number) =>
-          `${n} logged ${n === 1 ? "day" : "days"} · ${min} needed`,
+        loggedDays: (n: number) => `${n} logged ${n === 1 ? "day" : "days"}`,
+        needed: (min: number, target: number) => `${min} needed · target ${target}%`,
         noAverage: "—",
         states: {
           "in-progress": (left: number) =>
@@ -537,9 +539,17 @@ export const en = {
           paused: "Paused. Days don't count against you until you resume.",
           "no-phase": "",
         },
+        belowTitle: (window: number, avg: number, short: number) =>
+          `The ${window} days are up: ${avg}%, so ${short} ${short === 1 ? "point" : "points"} short`,
+        belowBody:
+          "Repeat this phase for another round: no penalty. Or move on early if you feel ready.",
+        howItWorks: "How unlocking works",
         strongest: "Strongest",
         weakest: "Weakest",
         notYet: "Shows after the first finished day.",
+        editHabitsHint: "Add, move or change this phase's habits",
+        turnOffHint: "Its habits leave your checklist; history is kept",
+        scale: (target: number) => ["0%", `${target}%`, "100%"],
         enable: (label: string) => `Enable ${label}`,
         enableEarly: (label: string) => `Enable ${label} early`,
         repeat: "Repeat this phase",

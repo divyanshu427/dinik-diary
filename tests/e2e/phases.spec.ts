@@ -163,3 +163,19 @@ test.describe("Phases layout on a laptop", () => {
     expect(Math.abs(chart.y - main.y)).toBeLessThan(5);
   });
 });
+
+test.describe("Phases on a phone", () => {
+  test.skip(({ isMobile }) => !isMobile, "phone only");
+
+  test("‹ More goes back; the chart comes right after the current phase", async ({ page }) => {
+    await openPhases(page);
+    const phase = (await current(page).boundingBox())!;
+    const chart = (await page.getByRole("region", { name: "Daily completion" }).boundingBox())!;
+    const upNext = (await page.getByRole("region", { name: "Up next" }).boundingBox())!;
+    expect(chart.y).toBeGreaterThan(phase.y + phase.height - 1);
+    expect(upNext.y).toBeGreaterThan(chart.y + chart.height - 1);
+
+    await page.getByRole("link", { name: "More", exact: true }).click();
+    await expect(page).toHaveURL("/more");
+  });
+});

@@ -1,4 +1,4 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,8 @@ interface PageHeaderProps {
   subtitle?: ReactNode;
   /** Small link above the title, e.g. "Back to Today". */
   back?: { href: string; label: string };
+  /** Like `back`, but only on phones (e.g. "‹ More" for screens reached from the More sheet). */
+  phoneBack?: { href: string; label: string };
   /** Controls on the right, e.g. a Week / Month / All time switch. */
   actions?: ReactNode;
   /** Keep the actions beside the title on phones too (small controls only). */
@@ -23,6 +25,7 @@ export function PageHeader({
   eyebrow,
   subtitle,
   back,
+  phoneBack,
   actions,
   inlineActions,
   className,
@@ -43,6 +46,15 @@ export function PageHeader({
           >
             <ArrowLeft aria-hidden className="size-4" />
             {back.label}
+          </Link>
+        )}
+        {phoneBack && !back && (
+          <Link
+            href={phoneBack.href}
+            className="mb-2 inline-flex items-center gap-0.5 text-sm font-medium text-primary underline-offset-4 hover:underline md:hidden"
+          >
+            <ChevronLeft aria-hidden className="size-4" />
+            {phoneBack.label}
           </Link>
         )}
         {eyebrow && <p className="mb-1 text-sm text-muted-foreground">{eyebrow}</p>}
