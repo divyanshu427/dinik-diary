@@ -1,0 +1,20 @@
+/** TanStack Query cache keys. Keep them here so invalidation stays consistent. */
+export const queryKeys = {
+  all: ["data"] as const,
+  settings: ["data", "settings"] as const,
+  phases: ["data", "phases"] as const,
+  categories: ["data", "categories"] as const,
+  habits: ["data", "habits"] as const,
+  habitTargets: ["data", "habitTargets"] as const,
+  counts: ["data", "counts"] as const,
+  habitLogs: ["data", "habitLogs"] as const,
+  activities: ["data", "activities"] as const,
+  dayStatus: ["data", "dayStatus"] as const,
+  metrics: ["data", "metrics"] as const,
+  concerns: ["data", "concerns"] as const,
+  concernUpdates: ["data", "concernUpdates"] as const,
+  healthReports: ["data", "healthReports"] as const,
+  reportFiles: ["data", "reportFiles"] as const,
+  labValues: ["data", "labValues"] as const,
+  storage: ["storage"] as const,
+};
