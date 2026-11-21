@@ -174,6 +174,18 @@ export class DinikDb extends Dexie {
           await habits.update(h.id, patch);
         }
       });
+    // Version 8: habits can have a start date (missing = started from the beginning, so
+    // nothing changes for existing habits), and the first-run picker is only for fresh starts.
+    this.version(8)
+      .stores(STORES_V5)
+      .upgrade((tx) =>
+        tx
+          .table<Settings>("settings")
+          .toCollection()
+          .modify((s) => {
+            s.firstRunDone ??= true;
+          }),
+      );
   }
 
   /** Every table, for "clear everything" operations. */

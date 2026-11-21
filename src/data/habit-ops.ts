@@ -88,6 +88,7 @@ export function createHabit(ctx: OpsContext, draft: HabitDraft): Promise<Habit> 
   const { store, today } = ctx;
   return store.atomically(async () => {
     const keys = new Set((await store.habits.list()).map((h) => h.key));
+    const phase = await store.phases.get(draft.phaseId);
     const habit = await store.habits.create({
       key: makeHabitKey(draft.name, keys),
       name: draft.name.trim(),
@@ -101,6 +102,8 @@ export function createHabit(ctx: OpsContext, draft: HabitDraft): Promise<Habit> 
       metricKey: null,
       partOfDay: draft.partOfDay,
       pauses: [],
+      // A new habit in a running phase starts today; in a locked phase it waits for the phase.
+      startsOn: phase && isUnlocked(phase) ? today : null,
       archived: false,
       sortOrder: await nextSortOrder(store, draft.phaseId),
     });
@@ -381,4 +384,47 @@ function endRunningPauses(habit: Habit, today: IsoDate) {
     .filter((p) => p.from <= today || p.to < today)
     .map((p) => (p.from <= today && today <= p.to ? { ...p, to: addDays(today, -1) } : p))
     .filter((p) => p.from <= p.to);
+}
+
+/**
+ * When a habit starts counting: a date (it joins Today and the phase average from that day;
+ * earlier days are never missed), or null for "not started yet".
+ */
+export function setHabitStart(
+  ctx: OpsContext,
+  id: string,
+  startsOn: IsoDate | null,
+): Promise<Habit> {
+  return ctx.store.habits.update(id, { startsOn });
+}
+
+/** Starts several habits from the same day. */
+export function startHabits(ctx: OpsContext, ids: readonly string[], from: IsoDate): Promise<void> {
+  const { store } = ctx;
+  return store.atomically(async () => {
+    for (const id of ids) await store.habits.update(id, { startsOn: from });
+  });
+}
+
+/**
+ * The first-run question "Which habits do you want to start with?": the chosen Phase 1 habits
+ * count from the beginning (so filling in yesterday still works), the rest of Phase 1 waits.
+ * `"all"` starts every one of them.
+ */
+export function completeFirstRun(
+  ctx: OpsContext,
+  chosen: readonly string[] | "all",
+): Promise<void> {
+  const { store } = ctx;
+  return store.atomically(async () => {
+    const first = (await sortedPhases(store))[0];
+    if (first) {
+      for (const habit of await store.habits.listByPhase(first.id)) {
+        if (habit.archived) continue;
+        const start = chosen === "all" || chosen.includes(habit.id) ? undefined : null;
+        await store.habits.update(habit.id, { startsOn: start });
+      }
+    }
+    await store.settings.update({ firstRunDone: true });
+  });
 }

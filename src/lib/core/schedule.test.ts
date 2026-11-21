@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { HabitSchedule } from "@/data/schema";
-import { dueRole } from "./schedule";
+import { dueRole, dueRoleOn, isStartedOn } from "./schedule";
 
 describe("which days a habit is due", () => {
   it("daily habits are due every day", () => {
@@ -23,5 +23,26 @@ describe("which days a habit is due", () => {
 
   it("N-times-a-week habits are flexible every day", () => {
     expect(dueRole({ kind: "timesPerWeek", times: 3 }, "2026-11-20")).toBe("flexible");
+  });
+});
+
+describe("start dates", () => {
+  const daily: HabitSchedule = { kind: "daily" };
+
+  it("a habit without a start date counts from the beginning (older habits)", () => {
+    expect(isStartedOn(undefined, "2026-01-01")).toBe(true);
+    expect(dueRoleOn({ schedule: daily }, "2026-11-20")).toBe("due");
+  });
+
+  it("a habit that hasn't started is never due", () => {
+    expect(isStartedOn(null, "2026-11-20")).toBe(false);
+    expect(dueRoleOn({ schedule: daily, startsOn: null }, "2026-11-20")).toBe("not-due");
+  });
+
+  it("a habit starting on the 25th is due from that day, never before", () => {
+    const habit = { schedule: daily, startsOn: "2026-11-25" };
+    expect(dueRoleOn(habit, "2026-11-24")).toBe("not-due");
+    expect(dueRoleOn(habit, "2026-11-25")).toBe("due");
+    expect(dueRoleOn(habit, "2026-11-30")).toBe("due");
   });
 });

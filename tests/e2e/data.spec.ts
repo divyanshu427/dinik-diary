@@ -42,6 +42,9 @@ test.describe("data layer on the Settings screen", () => {
     await expect(page.getByRole("alertdialog")).toContainText("Reset to the starter data?");
     await page.getByRole("button", { name: "Delete and reset" }).click();
     await expect(page.getByRole("status")).toHaveText("Starter data loaded.");
+    // Fresh starter data asks which habits to start with.
+    await page.getByRole("button", { name: /^Start all \d+ instead$/ }).click();
+    await page.getByRole("button", { name: "Not now" }).click();
     await expectStarterCounts(page);
     await page.getByRole("radio", { name: /Sage/ }).click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "sage");

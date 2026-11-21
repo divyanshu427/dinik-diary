@@ -8,7 +8,9 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
+  CalendarDays,
   ChevronRight,
+  CircleSlash,
   ChevronsUpDown,
   EllipsisVertical,
   FileText,
@@ -29,7 +31,7 @@ import { copy } from "@/copy";
 import { isUnlocked } from "@/data/habit-ops";
 import type { Category, Habit, HabitTarget, Phase } from "@/data/schema";
 import { formatShort } from "@/features/today/format";
-import { isPausedOn, targetOn, type HabitStats } from "@/lib/core";
+import { addDays, diffDays, isPausedOn, startState, targetOn, type HabitStats } from "@/lib/core";
 import { cn } from "@/lib/utils";
 import { describeSchedule, describeTarget, phaseLabel } from "./format";
 import { HistoryDots } from "./history-views";
@@ -46,6 +48,10 @@ export interface HabitRowHandlers {
   onMoveHabitTo: (habit: Habit, phaseId: string) => void;
   onArchiveHabit: (habit: Habit) => void;
   onDeleteHabit: (habit: Habit) => void;
+  /** Start date: a day, or null for "not started yet". */
+  onSetStart: (habit: Habit, startsOn: string | null) => void;
+  /** Opens "When should … start?" with a date picker. */
+  onPickStart: (habit: Habit) => void;
 }
 
 interface RowContext {
@@ -76,6 +82,8 @@ interface PhaseSectionProps extends HabitRowHandlers, RowContext, RowStats {
   habits: Habit[];
   /** All visible habits in the phase, before filtering. */
   totalCount: number;
+  /** How many of them have started (the rest wait). */
+  startedCount: number;
   /** The current phase's progress, e.g. "Day 9 of 14 · 76%". */
   progressNote?: string;
   open: boolean;
@@ -94,7 +102,10 @@ interface PhaseSectionProps extends HabitRowHandlers, RowContext, RowStats {
 
 /** One phase: a header you click to expand, and its habits, which can be dragged. */
 export function PhaseSection(props: PhaseSectionProps) {
-  const { phase, habits, open, dropState } = props;
+  const { phase, habits, open, dropState, today } = props;
+  // Habits that count now, and those waiting to start (later, or not started yet).
+  const started = habits.filter((h) => startState(h.startsOn, today) === "started");
+  const waiting = habits.filter((h) => startState(h.startsOn, today) !== "started");
   const { setNodeRef } = useDroppable({ id: containerId(phase.id) });
   const labelId = `phase-label-${phase.id}`;
   const listId = `phase-list-${phase.id}`;
@@ -132,7 +143,9 @@ export function PhaseSection(props: PhaseSectionProps) {
               </span>
               {/* Phones: count and status under the name. */}
               <span className="mt-0.5 flex items-center gap-2 text-sm font-normal text-muted-foreground sm:hidden">
-                {t.habitCount(props.totalCount)}
+                {props.startedCount < props.totalCount
+                  ? copy.pages.start.phaseCount(props.startedCount, props.totalCount)
+                  : t.habitCount(props.totalCount)}
                 <StatusBadge phase={phase} />
               </span>
               {phase.description && (
@@ -157,7 +170,9 @@ export function PhaseSection(props: PhaseSectionProps) {
           </span>
         )}
         <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
-          {t.habitCount(props.totalCount)}
+          {props.startedCount < props.totalCount
+            ? copy.pages.start.phaseCount(props.startedCount, props.totalCount)
+            : t.habitCount(props.totalCount)}
         </span>
         <StatusBadge phase={phase} className="hidden sm:inline-flex" />
         {props.reordering && (
@@ -198,7 +213,7 @@ export function PhaseSection(props: PhaseSectionProps) {
 
       {open && (
         <div id={listId} className="border-t">
-          <SortableContext items={habits.map((h) => h.id)} strategy={verticalListSortingStrategy}>
+          <SortableContext items={started.map((h) => h.id)} strategy={verticalListSortingStrategy}>
             {habits.length === 0 ? (
               <p className="px-4 py-4 text-sm text-muted-foreground">
                 {dropState === "blocked"
@@ -209,21 +224,43 @@ export function PhaseSection(props: PhaseSectionProps) {
               </p>
             ) : (
               <>
-                <ColumnHeader />
+                {started.length > 0 && <ColumnHeader />}
                 <ul className="divide-y">
-                  {habits.map((habit, i) => (
+                  {started.map((habit, i) => (
                     <SortableHabitRow
                       key={habit.id}
                       {...props}
                       habit={habit}
                       isFirstHabit={i === 0}
-                      isLastHabit={i === habits.length - 1}
+                      isLastHabit={i === started.length - 1}
                     />
                   ))}
                 </ul>
               </>
             )}
           </SortableContext>
+          {waiting.length > 0 && (
+            <details open className="group/waiting border-t" data-testid="waiting-habits">
+              <summary className="flex cursor-pointer list-none items-center gap-2 bg-muted/50 px-4 py-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase outline-none focus-visible:bg-muted [&::-webkit-details-marker]:hidden">
+                <ChevronRight
+                  aria-hidden
+                  className="size-4 transition-transform group-open/waiting:rotate-90"
+                />
+                {copy.pages.start.waiting} · {waiting.length}
+              </summary>
+              <ul className="divide-y border-t">
+                {waiting.map((habit, i) => (
+                  <WaitingRow
+                    key={habit.id}
+                    {...props}
+                    habit={habit}
+                    isFirstHabit={i === 0}
+                    isLastHabit={i === waiting.length - 1}
+                  />
+                ))}
+              </ul>
+            </details>
+          )}
           <div className="border-t px-2 py-1.5">
             <Button
               variant="ghost"
@@ -324,6 +361,47 @@ function SortableHabitRow(props: RowProps) {
   );
 }
 
+/** A habit that hasn't started: name, when it starts (or "Not started"), a Start button. */
+function WaitingRow(props: RowProps) {
+  const { habit, today } = props;
+  const st = copy.pages.start;
+  const later = startState(habit.startsOn, today) === "later";
+  return (
+    <li className="flex items-center gap-2 bg-card py-2 pr-2 pl-4" data-habit-waiting={habit.name}>
+      <button
+        type="button"
+        onClick={() => props.onSelectHabit(habit)}
+        className="min-w-0 flex-1 rounded-lg py-1 text-left text-muted-foreground outline-none hover:bg-muted/70 focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        <span className="block font-medium" data-habit-name>
+          {habit.name}
+        </span>
+        <span className="block text-sm">
+          {[describeSchedule(habit.schedule), later ? null : st.notStarted]
+            .filter(Boolean)
+            .join(" · ")}
+        </span>
+      </button>
+      {later ? (
+        <span className="flex shrink-0 items-center gap-1 rounded-full border border-dashed border-primary px-2.5 py-1 text-xs font-medium text-primary">
+          <CalendarDays aria-hidden className="size-3.5" />
+          {st.startsOn(formatShort(habit.startsOn!))}
+        </span>
+      ) : (
+        <Button
+          size="sm"
+          variant="outline"
+          aria-label={st.startNamed(habit.name)}
+          onClick={() => props.onSetStart(habit, today)}
+        >
+          {st.start}
+        </Button>
+      )}
+      <HabitMenu {...props} />
+    </li>
+  );
+}
+
 /** Column titles above the habit rows (laptop and tablet). Widths match the row cells. */
 function ColumnHeader() {
   const c = t.columns;
@@ -353,7 +431,13 @@ export function HabitRowText({
   const category = habit.categoryId ? categoryById.get(habit.categoryId) : undefined;
   // Only what's informative: "Yes / no" and "Every day" are the defaults, so they're left out.
   const pause = today ? habit.pauses.find((p) => p.from <= today && today <= p.to) : undefined;
+  // Started in the last week: "New · day 3", and earlier days don't count.
+  const startedOn =
+    typeof habit.startsOn === "string" && habit.startsOn <= today ? habit.startsOn : null;
+  const newDay =
+    startedOn && diffDays(today, startedOn) < 7 ? diffDays(today, startedOn) + 1 : null;
   const details = [
+    newDay !== null && startedOn ? copy.pages.start.earlierDontCount(formatShort(startedOn)) : null,
     pause ? t.pausedUntil(formatShort(pause.to)) : null,
     habit.type !== "boolean" ? describeTarget(habit, target) : null,
     habit.schedule.kind !== "daily" ? describeSchedule(habit.schedule) : null,
@@ -365,8 +449,15 @@ export function HabitRowText({
   // Spans (not paragraphs): this sits inside a button.
   return (
     <span className="block min-w-0 flex-1">
-      <span className="block font-medium" data-habit-name>
-        {habit.name}
+      <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+        <span className="font-medium" data-habit-name>
+          {habit.name}
+        </span>
+        {newDay !== null && (
+          <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground">
+            {copy.pages.start.newDay(newDay)}
+          </span>
+        )}
       </span>
       <span className="block text-sm text-muted-foreground">{details}</span>
     </span>
@@ -382,8 +473,43 @@ function HabitMenu(props: RowProps) {
   const stats = props.stats.get(habit.id);
   const category = habit.categoryId ? props.categoryById.get(habit.categoryId) : undefined;
   const pct = stats?.percent != null ? Math.round(stats.percent) : null;
+  const st = copy.pages.start;
+  const state = startState(habit.startsOn, today);
+  const dates = [
+    { label: st.tomorrow, onSelect: () => props.onSetStart(habit, addDays(today, 1)) },
+    { label: st.inAWeek, onSelect: () => props.onSetStart(habit, addDays(today, 7)) },
+    { label: st.otherDate, onSelect: () => props.onPickStart(habit) },
+  ];
+  const startItems: ActionItem[] =
+    state === "started"
+      ? []
+      : [
+          {
+            label: st.startNow,
+            description: st.startNowHint,
+            icon: Play,
+            onSelect: () => props.onSetStart(habit, today),
+          },
+          {
+            label: state === "later" ? st.changeStart : st.pickStart,
+            description: st.pickStartHint,
+            icon: CalendarDays,
+            children: dates,
+          },
+          ...(state === "later"
+            ? [
+                {
+                  label: st.dontStart,
+                  description: st.dontStartHint,
+                  icon: CircleSlash,
+                  onSelect: () => props.onSetStart(habit, null),
+                },
+              ]
+            : []),
+        ];
 
   const items: ActionItem[] = [
+    ...startItems,
     {
       label: a.open,
       description: a.openHint,
@@ -432,22 +558,26 @@ function HabitMenu(props: RowProps) {
         },
       ],
     },
-    paused
-      ? {
-          label: a.resume,
-          description: pause ? a.resumeHint(formatShort(pause.to)) : undefined,
-          icon: Play,
-          onSelect: () => props.onResumeHabit(habit),
-        }
-      : {
-          label: a.pause,
-          description: a.pauseHint,
-          icon: Pause,
-          children: [3, 7, 14].map((days) => ({
-            label: a.pauseFor[days],
-            onSelect: () => props.onPauseHabit(habit, days),
-          })),
-        },
+    ...(state !== "started"
+      ? []
+      : [
+          paused
+            ? {
+                label: a.resume,
+                description: pause ? a.resumeHint(formatShort(pause.to)) : undefined,
+                icon: Play,
+                onSelect: () => props.onResumeHabit(habit),
+              }
+            : {
+                label: a.pause,
+                description: a.pauseHint,
+                icon: Pause,
+                children: [3, 7, 14].map((days) => ({
+                  label: a.pauseFor[days],
+                  onSelect: () => props.onPauseHabit(habit, days),
+                })),
+              },
+        ]),
     {
       label: a.archive,
       description: a.archiveHint,

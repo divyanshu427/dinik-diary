@@ -27,12 +27,22 @@ export function pausedDays(pauses: Pauses, until: IsoDate): Set<IsoDate> {
   return out;
 }
 
-/** Like dueRole, but a paused habit is never due. */
+/**
+ * Whether a habit has started counting on a date. `startsOn` missing = started from the
+ * beginning; null = not started yet; a date = from that day.
+ */
+export function isStartedOn(startsOn: IsoDate | null | undefined, date: IsoDate): boolean {
+  return startsOn === undefined || (startsOn !== null && date >= startsOn);
+}
+
+/** Like dueRole, but a paused habit, or one that hasn't started yet, is never due. */
 export function dueRoleOn(
-  habit: { schedule: HabitSchedule; pauses?: Pauses },
+  habit: { schedule: HabitSchedule; pauses?: Pauses; startsOn?: IsoDate | null },
   date: IsoDate,
 ): DueRole {
-  return isPausedOn(habit.pauses, date) ? "not-due" : dueRole(habit.schedule, date);
+  return isPausedOn(habit.pauses, date) || !isStartedOn(habit.startsOn, date)
+    ? "not-due"
+    : dueRole(habit.schedule, date);
 }
 
 export function dueRole(schedule: HabitSchedule, date: IsoDate): DueRole {
@@ -48,4 +58,13 @@ export function dueRole(schedule: HabitSchedule, date: IsoDate): DueRole {
     case "timesPerWeek":
       return "flexible";
   }
+}
+
+/** Where a habit stands on `today`: counting, starting on a later day, or not started yet. */
+export type StartState = "started" | "later" | "waiting";
+
+export function startState(startsOn: IsoDate | null | undefined, today: IsoDate): StartState {
+  if (startsOn === null) return "waiting";
+  if (startsOn !== undefined && startsOn > today) return "later";
+  return "started";
 }

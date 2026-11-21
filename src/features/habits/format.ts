@@ -47,3 +47,12 @@ export function describeSchedule(schedule: Habit["schedule"]): string {
 /** "Phase 2 · Fitness and grooming" */
 export const phaseLabel = (p: Pick<Phase, "number" | "name">) =>
   copy.pages.data.phaseLabel(p.number, p.name);
+
+/** Short right-hand text for a habit in a start list: "30 min", "3× a week", "Every day". */
+export function startListDetail(
+  habit: Pick<Habit, "type" | "unit" | "direction" | "schedule">,
+  target: Pick<HabitTarget, "targetValue" | "targetTime" | "graceMinutes"> | undefined,
+): string {
+  if (habit.type !== "boolean") return describeTarget(habit, target);
+  return describeSchedule(habit.schedule);
+}

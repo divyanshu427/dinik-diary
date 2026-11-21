@@ -2,6 +2,7 @@
 
 A personal daily-life tracker: habits in phases, activities by category, and weekly/monthly reports.
 
+- What the app does, page by page: [APP-GUIDE.md](APP-GUIDE.md)
 - Product plan: [plan.md](plan.md)
 - Build phases: [build-plan.md](build-plan.md)
 

@@ -122,3 +122,19 @@ describe("database upgrade to version 7 (water goal joins Phase 1)", () => {
     expect((await store.habits.get("g"))?.phaseId).toBe("p3");
   });
 });
+
+describe("database upgrade to version 8 (start dates, first run)", () => {
+  it("existing data never sees the first-run picker, and its habits stay started", async () => {
+    const name = `upgrade8-${Math.random().toString(36).slice(2)}`;
+    const old = new Dexie(name);
+    old.version(7).stores(STORES_V1);
+    await old.table("settings").add({ id: "settings", timezone: "Asia/Kolkata", dayStartHour: 4 });
+    await old
+      .table("habits")
+      .add({ id: "b", key: "bath", name: "Bath", phaseId: "p1", sortOrder: 0 });
+    old.close();
+    const store = createLocalDataStore({ dbName: name });
+    expect((await store.settings.get()).firstRunDone).toBe(true);
+    expect((await store.habits.get("b"))?.startsOn).toBeUndefined(); // = started from the start
+  });
+});

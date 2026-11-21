@@ -37,7 +37,8 @@ export interface HabitDay {
 }
 
 export interface HabitHistoryInput {
-  habit: Pick<Habit, "type" | "direction" | "schedule"> & Partial<Pick<Habit, "pauses">>;
+  habit: Pick<Habit, "type" | "direction" | "schedule"> &
+    Partial<Pick<Habit, "pauses" | "startsOn">>;
   targets: readonly HabitTarget[];
   /** This habit's check-ins by date. */
   logs: ReadonlyMap<IsoDate, Pick<HabitLog, "value" | "time">>;
@@ -113,19 +114,26 @@ export function habitStats(
 }
 
 /**
- * First day a habit counts: the logical day it was created, or an earlier back-filled check-in.
+ * First day a habit counts: its chosen start date; otherwise the logical day it was created,
+ * or an earlier back-filled check-in.
  * Shared by the Habits screen, Today and the reports so they all agree.
  */
 export function habitStartDate(
-  habit: Pick<Habit, "createdAt">,
+  habit: Pick<Habit, "createdAt"> & Partial<Pick<Habit, "startsOn">>,
   logDates: Iterable<IsoDate>,
   config: DayConfig,
 ): IsoDate {
+  // A chosen start date wins: days before it never count. Not started yet: nothing counts.
+  if (typeof habit.startsOn === "string") return habit.startsOn;
+  if (habit.startsOn === null) return NOT_STARTED;
   const created = logicalDate(new Date(habit.createdAt), config);
   let start = created;
   for (const d of logDates) if (d < start) start = d;
   return start;
 }
+
+/** The "start date" of a habit that hasn't started: later than any real day. */
+export const NOT_STARTED: IsoDate = "9999-12-31";
 
 /** Success rate over some days, 0–100 (null when nothing counted). "N times a week" uses the quota. */
 export function successRate(

@@ -1,3 +1,4 @@
+import type { IsoDate } from "@/lib/core";
 import { setTargetFrom, type OpsContext } from "./habit-ops";
 import type { DataStore } from "./repositories";
 import type { Phase, PhaseEvent, TargetUpgrade } from "./schema";
@@ -33,10 +34,21 @@ async function getPhase(store: DataStore, id: string) {
  * Starts a phase (the next one, or any locked one "early"). Earlier active or paused phases
  * become completed, and the phase's target upgrades apply from today.
  */
+export interface EnableOptions {
+  early?: boolean;
+  /**
+   * Which of the phase's habits to start, and from when. The others wait (not started).
+   * Left out: every habit starts from the beginning, as before.
+   */
+  start?: { habitIds: readonly string[]; from: IsoDate };
+  /** Apply the phase's target changes (e.g. steps 5,000 → 8,000). Default: yes. */
+  applyUpgrades?: boolean;
+}
+
 export function enablePhase(
   ctx: OpsContext,
   id: string,
-  options: { early?: boolean } = {},
+  options: EnableOptions = {},
 ): Promise<Phase> {
   const { store, today, dayStartHour } = ctx;
   return store.atomically(async () => {
@@ -54,8 +66,18 @@ export function enablePhase(
       }
     }
 
+    if (options.start) {
+      const { habitIds, from } = options.start;
+      for (const habit of await store.habits.listByPhase(id)) {
+        if (habit.archived) continue;
+        await store.habits.update(habit.id, {
+          startsOn: habitIds.includes(habit.id) ? from : null,
+        });
+      }
+    }
+
     const changes: NonNullable<PhaseEvent["changes"]> = [];
-    for (const upgrade of phase.targetUpgrades) {
+    for (const upgrade of options.applyUpgrades === false ? [] : phase.targetUpgrades) {
       const habit = await store.habits.get(upgrade.habitId);
       if (!habit || habit.archived) continue;
       const { habitId: _id, ...to } = upgrade;

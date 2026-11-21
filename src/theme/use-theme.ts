@@ -73,6 +73,10 @@ function subscribe(listener: () => void) {
   if (listeners.size === 1) {
     window.addEventListener("storage", onStorage);
     window.matchMedia(DARK_QUERY).addEventListener("change", onSystemChange);
+    // The device's light/dark setting may have changed while the page was still loading
+    // (before anyone listened): catch up now. React re-reads the snapshot after subscribing.
+    const pref = getPreference();
+    if (pref.mode === "system") applyToDocument(pref);
   }
   return () => {
     listeners.delete(listener);

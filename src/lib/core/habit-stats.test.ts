@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { HabitSchedule, HabitTarget } from "@/data/schema";
-import { habitHistory, habitStats, type HabitHistoryInput } from "./habit-stats";
+import {
+  habitHistory,
+  habitStartDate,
+  habitStats,
+  NOT_STARTED,
+  type HabitHistoryInput,
+} from "./habit-stats";
 
 const target = (value: number | null): HabitTarget => ({
   id: "t",
@@ -130,5 +136,53 @@ describe("habit stats", () => {
     });
     expect(s.percent).toBe(50);
     expect(s.days.filter((d) => d.state === "missed")).toHaveLength(0);
+  });
+});
+
+describe("start dates in stats", () => {
+  const config = { timeZone: "Asia/Kolkata", dayStartHour: 4 };
+  const created = { createdAt: "2026-11-01T06:00:00.000Z" };
+
+  it("a chosen start date is where the history begins; earlier days are never missed", () => {
+    expect(habitStartDate({ ...created, startsOn: "2026-11-18" }, [], config)).toBe("2026-11-18");
+    const i = input({
+      startDate: "2026-11-18",
+      habit: {
+        type: "boolean",
+        direction: "higher_better",
+        schedule: { kind: "daily" },
+        startsOn: "2026-11-18",
+      },
+    });
+    expect(states(i, "2026-11-16", "2026-11-19")).toEqual([
+      "before-start",
+      "before-start",
+      "missed",
+      "missed",
+    ]);
+  });
+
+  it("a habit that hasn't started has no history and no %", () => {
+    const start = habitStartDate({ ...created, startsOn: null }, [], config);
+    expect(start).toBe(NOT_STARTED);
+    const stats = habitStats({
+      ...input({
+        startDate: start,
+        habit: {
+          type: "boolean",
+          direction: "higher_better",
+          schedule: { kind: "daily" },
+          startsOn: null,
+        },
+      }),
+      windowDays: 14,
+      weekStart: "monday",
+    });
+    expect(stats.percent).toBeNull();
+    expect(stats.days.every((d) => d.state === "before-start")).toBe(true);
+  });
+
+  it("without a start date, it counts from when the habit was made (as before)", () => {
+    expect(habitStartDate(created, ["2026-10-30"], config)).toBe("2026-10-30");
   });
 });

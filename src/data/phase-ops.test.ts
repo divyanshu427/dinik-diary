@@ -107,3 +107,24 @@ describe("phase manager", () => {
     expect((await store.phases.get(phases[2].id))!.targetUpgrades).toEqual([up(10000)]);
   });
 });
+
+describe("choosing which habits to start", () => {
+  it("only the picked habits start (from the chosen day); the rest wait", async () => {
+    const { store, ctx, phases, stepsTarget } = await setup();
+    const p2 = await store.habits.listByPhase(phases[1].id);
+    const [workout, stretching] = p2;
+    await enablePhase(ctx, phases[1].id, {
+      early: true,
+      start: { habitIds: [workout.id, stretching.id], from: "2026-11-24" },
+      applyUpgrades: false,
+    });
+    const after = await store.habits.listByPhase(phases[1].id);
+    expect(after.filter((h) => h.startsOn === "2026-11-24").map((h) => h.id)).toEqual([
+      workout.id,
+      stretching.id,
+    ]);
+    expect(after.filter((h) => h.startsOn === null)).toHaveLength(p2.length - 2);
+    // Target changes were left off.
+    expect(await stepsTarget("2026-11-20")).toBe(5000);
+  });
+});

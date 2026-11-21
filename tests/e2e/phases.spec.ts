@@ -14,6 +14,15 @@ async function openPhases(page: Page) {
   await expect(page.getByText("Loading your phases…")).toHaveCount(0);
 }
 
+/** The "Start Phase N" sheet: pick every habit (or the given ones) and start them today. */
+async function startPhase(page: Page, picks: "all" | string[] = "all") {
+  const sheet = page.getByRole("dialog");
+  if (picks === "all") await sheet.getByRole("button", { name: "Select all" }).click();
+  else for (const name of picks) await sheet.getByRole("checkbox", { name }).click();
+  await sheet.getByRole("button", { name: /^Start \d+ habits?$/ }).click();
+  await expect(sheet).toHaveCount(0);
+}
+
 async function openToday(page: Page) {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 2, name: "Checklist" })).toBeVisible();
@@ -31,11 +40,12 @@ test.describe("phase manager", () => {
     await current(page)
       .getByRole("button", { name: `Enable ${P2} early` })
       .click();
-    const confirm = page.getByRole("alertdialog");
-    await expect(confirm).toContainText("7 habits join your checklist from today");
-    await expect(confirm).toContainText("You haven't reached 80% yet");
-    await expect(confirm).toContainText("Daily steps: 5,000 steps → 8,000 steps");
-    await confirm.getByRole("button", { name: "Enable" }).click();
+    const sheet = page.getByRole("dialog");
+    await expect(sheet).toContainText(`Start ${P2}`);
+    await expect(sheet).toContainText("You haven't reached 80%");
+    await expect(sheet).toContainText("Daily steps: 5,000 steps → 8,000 steps");
+    await expect(sheet.getByTestId("start-picked")).toContainText("0 of 7 picked");
+    await startPhase(page);
 
     await expect(current(page)).toContainText(P2);
     await expect(card(page, "Foundation")).toContainText("Completed");
@@ -49,12 +59,54 @@ test.describe("phase manager", () => {
     await expect(habitRow(page, "Daily steps")).toContainText("0 / 8,000 steps");
   });
 
+  test("start only some of Phase 2: the rest wait until you start them", async ({ page }) => {
+    await openPhases(page);
+    await current(page)
+      .getByRole("button", { name: `Enable ${P2} early` })
+      .click();
+    await startPhase(page, ["Workout or yoga", "Stretching"]);
+
+    const started = page.getByTestId("phase-started");
+    await expect(started).toContainText("2 of 7 habits started");
+    await expect(started.getByRole("region", { name: "Not started" })).toContainText("Floss");
+
+    // Today: the two picked are on the checklist; the rest wait.
+    await openToday(page);
+    await expect(habitRow(page, "Workout or yoga")).toBeVisible();
+    await expect(habitRow(page, "Floss")).toHaveCount(0);
+    await page.getByText(/^Not due today/).click();
+    await expect(page.locator('[data-not-due="Floss"]')).toContainText("Not started");
+
+    // Start one more from the Phases page, and give another a later date on Habits.
+    await openPhases(page);
+    await started.getByRole("button", { name: "Start Floss today" }).click();
+    await expect(started).toContainText("3 of 7 habits started");
+
+    await page.goto("/habits");
+    const p2 = page.getByRole("region", { name: P2 });
+    const toggle = p2.locator('button[aria-controls^="phase-list-"]');
+    if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+    await expect(p2.getByTestId("waiting-habits")).toContainText("Waiting to start · 4");
+    await expect(async () => {
+      await page.keyboard.press("Escape");
+      await page.getByRole("button", { name: "Actions for No sugary drinks" }).click();
+      await page.getByRole("menuitem", { name: "Pick a start date" }).click({ timeout: 2000 });
+      await page.getByRole("menuitem", { name: "In a week" }).click({ timeout: 2000 });
+    }).toPass();
+    await expect(p2.locator('[data-habit-waiting="No sugary drinks"]')).toContainText("Starts");
+    await expect(p2.getByTestId("waiting-habits")).toContainText("Waiting to start · 4");
+
+    await openToday(page);
+    await expect(habitRow(page, "Floss")).toBeAttached();
+    await expect(habitRow(page, "No sugary drinks")).toHaveCount(0);
+  });
+
   test("turning a phase off puts the old target back and removes its habits", async ({ page }) => {
     await openPhases(page);
     await current(page)
       .getByRole("button", { name: `Enable ${P2} early` })
       .click();
-    await page.getByRole("alertdialog").getByRole("button", { name: "Enable" }).click();
+    await startPhase(page);
     await expect(current(page)).toContainText(P2);
 
     await current(page).getByRole("button", { name: "More phase actions" }).click();
@@ -143,9 +195,8 @@ test.describe("readiness on demo data", () => {
     await current(page)
       .getByRole("button", { name: `Enable ${P3}` })
       .click();
-    const confirm = page.getByRole("alertdialog");
-    await expect(confirm).not.toContainText("You haven't reached");
-    await confirm.getByRole("button", { name: "Enable" }).click();
+    await expect(page.getByRole("dialog")).not.toContainText("You haven't reached");
+    await startPhase(page);
     await expect(current(page)).toContainText(P3);
     await expect(current(page)).toContainText("Day 1 of 7");
   });

@@ -32,7 +32,14 @@ import { ActionMenu, type ActionItem } from "@/components/action-menu";
 import { Cell, Dashboard } from "@/components/dashboard";
 import { PageHeader } from "@/components/page-header";
 import { StatTile } from "@/components/stat-tile";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,7 +74,7 @@ import { useMediaQuery, WIDE_QUERY } from "@/hooks/use-media-query";
 import { useHabitEditor, useHabitLogCount } from "@/hooks/use-habit-editor";
 import { useBackToClose } from "@/hooks/use-back-to-close";
 import { formatShort } from "@/features/today/format";
-import { targetOn } from "@/lib/core";
+import { addDays, startState, targetOn, type IsoDate } from "@/lib/core";
 import { cn } from "@/lib/utils";
 import { emptyHabitForm, habitToForm } from "./habit-form";
 import { HabitDetail } from "./habit-detail";
@@ -121,6 +128,8 @@ export function HabitsScreen() {
   const [habitDialog, setHabitDialog] = useState<HabitDialog>(null);
   const [phaseDialog, setPhaseDialog] = useState<PhaseDialog>(null);
   const [confirm, setConfirm] = useState<Confirm>(null);
+  /** "When should … start?": the habit whose start date is being picked. */
+  const [pickStartFor, setPickStartFor] = useState<Habit | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [filter, setFilter] = useState<Filter>(ALL);
@@ -357,8 +366,14 @@ export function HabitsScreen() {
 
   const unlockedIds = new Set(phaseList.filter(isUnlocked).map((p) => p.id));
   const visible = habitList.filter((h) => !h.archived);
-  const activeHabits = visible.filter((h) => unlockedIds.has(h.phaseId));
-  const waiting = visible.length - activeHabits.length;
+  const inUnlocked = visible.filter((h) => unlockedIds.has(h.phaseId));
+  // "Active" = on the checklist now. Habits in a running phase that haven't started yet wait.
+  const activeHabits = inUnlocked.filter((h) => startState(h.startsOn, todayDate) === "started");
+  const startsSoon = inUnlocked.filter((h) => startState(h.startsOn, todayDate) === "later").length;
+  const notStarted = inUnlocked.filter(
+    (h) => startState(h.startsOn, todayDate) === "waiting",
+  ).length;
+  const waiting = visible.length - inUnlocked.length;
 
   const activeStats = activeHabits.flatMap((habit) => {
     const st = stats14.get(habit.id);
@@ -484,7 +499,17 @@ export function HabitsScreen() {
   return (
     <>
       <PageHeader
-        eyebrow={loaded ? t.headerSummary(activeHabits.length, waiting) : undefined}
+        eyebrow={
+          loaded
+            ? [
+                t.headerSummary(activeHabits.length, waiting),
+                startsSoon ? copy.pages.start.headerSoon(startsSoon) : null,
+                notStarted ? copy.pages.start.headerNotStarted(notStarted) : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")
+            : undefined
+        }
         title={t.title}
         subtitle={t.subtitle}
         actions={
@@ -620,6 +645,15 @@ export function HabitsScreen() {
                     .flatMap((id) => habitById.get(id) ?? [])
                     .filter(matches)}
                   totalCount={(arrangement[phase.id] ?? []).length}
+                  startedCount={
+                    (arrangement[phase.id] ?? []).filter(
+                      (id) => startState(habitById.get(id)?.startsOn, todayDate) === "started",
+                    ).length
+                  }
+                  onSetStart={(habit, startsOn) =>
+                    run(() => editor.setHabitStart.mutateAsync([habit.id, startsOn]))
+                  }
+                  onPickStart={setPickStartFor}
                   progressNote={
                     readiness?.phase?.id === phase.id && readiness.state !== "paused"
                       ? t.phaseProgress(
@@ -816,6 +850,15 @@ export function HabitsScreen() {
         />
       )}
 
+      {pickStartFor && (
+        <PickStartDialog
+          habit={pickStartFor}
+          today={todayDate}
+          onSave={(date) => run(() => editor.setHabitStart.mutateAsync([pickStartFor.id, date]))}
+          onClose={() => setPickStartFor(null)}
+        />
+      )}
+
       {phaseDialog && (
         <PhaseFormDialog
           mode={phaseDialog.mode}
@@ -854,6 +897,55 @@ export function HabitsScreen() {
         }}
       />
     </>
+  );
+}
+
+/** "When should Floss start?": a date from today on. */
+function PickStartDialog({
+  habit,
+  today,
+  onSave,
+  onClose,
+}: {
+  habit: Habit;
+  today: IsoDate;
+  onSave: (date: IsoDate) => void;
+  onClose: () => void;
+}) {
+  const st = copy.pages.start;
+  const [date, setDate] = useState(
+    typeof habit.startsOn === "string" && habit.startsOn > today
+      ? habit.startsOn
+      : addDays(today, 1),
+  );
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogTitle>{st.dateTitle(habit.name)}</DialogTitle>
+        <DialogDescription>{st.pickStartHint}</DialogDescription>
+        <Input
+          type="date"
+          aria-label={st.dateLabel}
+          value={date}
+          min={today}
+          onChange={(e) => e.target.value && setDate(e.target.value)}
+          className="h-10"
+        />
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            {st.cancel}
+          </Button>
+          <Button
+            onClick={() => {
+              onSave(date);
+              onClose();
+            }}
+          >
+            {st.save}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

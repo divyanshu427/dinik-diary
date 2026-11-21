@@ -407,6 +407,8 @@ export function defaultSettings(now: string, theme?: SeedOptions["theme"]): Sett
     featureFlags: { bot: false, aiParsing: false, voice: false, coach: false },
     lastBackupAt: null,
     backupReminderDays: 7,
+    // A fresh start asks which Phase 1 habits to begin with.
+    firstRunDone: false,
     seededAt: now,
     updatedAt: now,
   };

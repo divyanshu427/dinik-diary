@@ -375,7 +375,12 @@ export function buildDemoData({ today, theme, seed = 20261120 }: DemoOptions): B
       healthReports: [],
       reportFiles: [],
       labValues: [],
-      settings: { ...base.settings, seededAt: stampOf(start), updatedAt: stampOf(today) },
+      settings: {
+        ...base.settings,
+        firstRunDone: true,
+        seededAt: stampOf(start),
+        updatedAt: stampOf(today),
+      },
     },
   };
   // Same checks as a restored backup: demo data must be valid data.

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { InUseError } from "./local/local-store";
 import {
+  completeFirstRun,
   createHabit,
   createPhase,
   deletePhase,
@@ -13,6 +14,8 @@ import {
   reorderHabit,
   reorderPhase,
   resumeHabit,
+  setHabitStart,
+  startHabits,
   setHabitArchived,
   updateHabit,
   type HabitDraft,
@@ -298,5 +301,51 @@ describe("pausing a habit", () => {
       { from: "2026-11-20", to: "2026-11-20" },
       { from: "2026-11-21", to: "2026-12-04" },
     ]);
+  });
+});
+
+describe("start dates", () => {
+  it("first run: the chosen Phase 1 habits count from the start, the rest wait", async () => {
+    const { store, ctx } = setup("2026-11-21");
+    const p1 = await phaseByNumber(ctx, 1);
+    const [wake, water] = await store.habits.listByPhase(p1.id);
+    await completeFirstRun(ctx, [wake.id, water.id]);
+    const list = await store.habits.listByPhase(p1.id);
+    expect(list.filter((h) => h.startsOn === undefined).map((h) => h.id)).toEqual([
+      wake.id,
+      water.id,
+    ]);
+    expect(list.filter((h) => h.startsOn === null)).toHaveLength(list.length - 2);
+    expect((await store.settings.get()).firstRunDone).toBe(true);
+  });
+
+  it("first run: 'start all' starts every Phase 1 habit", async () => {
+    const { store, ctx } = setup("2026-11-21");
+    await completeFirstRun(ctx, "all");
+    const p1 = await phaseByNumber(ctx, 1);
+    expect((await store.habits.listByPhase(p1.id)).every((h) => h.startsOn === undefined)).toBe(
+      true,
+    );
+  });
+
+  it("a new habit starts today in a running phase and waits in a locked one", async () => {
+    const { ctx } = setup("2026-11-21");
+    const p1 = await phaseByNumber(ctx, 1);
+    const p3 = await phaseByNumber(ctx, 3);
+    const a = await createHabit(ctx, draft(p1.id, { name: "Walk the dog" }));
+    const b = await createHabit(ctx, draft(p3.id, { name: "Journal" }));
+    expect(a.startsOn).toBe("2026-11-21");
+    expect(b.startsOn).toBeNull();
+  });
+
+  it("a waiting habit can be given a start date, or stopped again", async () => {
+    const { store, ctx } = setup("2026-11-21");
+    const bath = (await store.habits.getByKey("bath"))!;
+    await setHabitStart(ctx, bath.id, "2026-11-25");
+    expect((await store.habits.get(bath.id))!.startsOn).toBe("2026-11-25");
+    await setHabitStart(ctx, bath.id, null);
+    expect((await store.habits.get(bath.id))!.startsOn).toBeNull();
+    await startHabits(ctx, [bath.id], "2026-11-21");
+    expect((await store.habits.get(bath.id))!.startsOn).toBe("2026-11-21");
   });
 });

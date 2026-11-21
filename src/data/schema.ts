@@ -17,8 +17,10 @@ import { CHART_TOKENS } from "@/theme/tokens";
  *    what helps / makes it worse, plan changes). Missing fields get their defaults.
  * 6: health reports, their files and the values typed from them (missing tables = empty).
  * 7: settings gained `lastBackupAt` and `backupReminderDays` (missing = never / 7 days).
+ * 8: habits gained `startsOn` (missing = started from the beginning); settings gained
+ *    `firstRunDone` (missing = true, so older data never sees the first-run picker).
  */
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 
 // ---------- building blocks ----------
 
@@ -148,6 +150,12 @@ export const habitSchema = z.object({
   partOfDay: partOfDay.default("anytime"),
   /** Date ranges the habit is paused (e.g. for back pain): those days it isn't due. */
   pauses: z.array(z.object({ from: isoDate, to: isoDate })).default([]),
+  /**
+   * When the habit starts counting. A date: due from that day (earlier days are never missed).
+   * null: not started yet (waiting in its phase). Missing: started from the beginning
+   * (habits from before this existed).
+   */
+  startsOn: isoDate.nullable().optional(),
   archived: z.boolean(),
   sortOrder: z.number().int(),
 });
@@ -357,6 +365,8 @@ export const settingsSchema = z.object({
   lastBackupAt: timestamp.nullable().default(null),
   /** Remind me to download a backup after this many days (0 = never remind). */
   backupReminderDays: z.number().int().min(0).max(60).default(7),
+  /** The first-run "Which habits do you want to start with?" has been answered. */
+  firstRunDone: z.boolean().default(true),
   /** When the starter data was first created on this device. */
   seededAt: timestamp,
   updatedAt: timestamp,

@@ -2,6 +2,7 @@
 
 import {
   CalendarClock,
+  Check,
   Layers,
   Lock,
   Pause,
@@ -34,13 +35,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { copy } from "@/copy";
 import type { Habit, HabitTarget, Phase, TargetUpgrade } from "@/data/schema";
-import { describeTarget } from "@/features/habits/format";
+import { describeTarget, startListDetail } from "@/features/habits/format";
 import { PhaseFormDialog } from "@/features/habits/phase-form-dialog";
 import { phaseLabel } from "@/features/habits/format";
 import { useHabits, useHabitTargets, usePhases, useSettings } from "@/hooks/use-data";
 import { useHabitEditor } from "@/hooks/use-habit-editor";
-import { parseIsoDate, targetOn, type IsoDate, type PhaseReadiness } from "@/lib/core";
+import { parseIsoDate, startState, targetOn, type IsoDate, type PhaseReadiness } from "@/lib/core";
 import { cn } from "@/lib/utils";
+import { StartHabitsSheet } from "./start-habits-sheet";
 import { UpgradeDialog } from "./upgrade-dialog";
 import { useReadiness } from "./use-readiness";
 import { WindowChart } from "./window-chart";
@@ -71,6 +73,8 @@ export function PhasesScreen() {
   const [confirm, setConfirm] = useState<Confirm>(null);
   const [addingPhase, setAddingPhase] = useState(false);
   const [upgradeFor, setUpgradeFor] = useState<Phase | null>(null);
+  /** "Choose more habits" for the current phase. */
+  const [startingMore, setStartingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const targetsByHabit = useMemo(() => {
@@ -107,8 +111,13 @@ export function PhasesScreen() {
       .data!.filter((h) => h.phaseId === p.id && !h.archived)
       .sort((a, b) => a.sortOrder - b.sortOrder);
   const onChecklist = habits.data.filter(
-    (h) => !h.archived && all.some((p) => p.id === h.phaseId && p.status !== "locked"),
+    (h) =>
+      !h.archived &&
+      all.some((p) => p.id === h.phaseId && p.status !== "locked") &&
+      startState(h.startsOn, editor.today!) === "started",
   ).length;
+  const detail = (h: Habit) =>
+    startListDetail(h, targetOn(targetsByHabit.get(h.id) ?? [], editor.today!));
   const current = readiness.phase;
   const others = all.filter((p) => p.id !== current?.id);
   const upNext = others.filter((p) => p.status === "locked");
@@ -177,6 +186,10 @@ export function PhasesScreen() {
                 phase={current}
                 readiness={readiness}
                 habitCount={onChecklist}
+                habits={habitsOf(current)}
+                today={today}
+                onStartOne={(h) => run(editor.startHabits.mutateAsync([[h.id], today]))}
+                onChooseMore={() => setStartingMore(true)}
                 name={(id) => habitById.get(id)?.name ?? "?"}
                 onEnableNext={(early) =>
                   readiness.next && setConfirm({ kind: "enable", phase: readiness.next, early })
@@ -320,23 +333,44 @@ export function PhasesScreen() {
         </Cell>
       </Dashboard>
 
-      {confirm && (
+      {confirm?.kind === "enable" && (
+        <StartHabitsSheet
+          title={copy.pages.start.enableTitle(phaseLabel(confirm.phase))}
+          note={confirm.early ? copy.pages.start.earlyNote(readiness.rules.threshold) : undefined}
+          habits={habitsOf(confirm.phase)}
+          detail={detail}
+          upgrades={confirm.phase.targetUpgrades.map(upgradeText).filter((x): x is string => !!x)}
+          today={today}
+          onSubmit={({ habitIds, from, applyUpgrades }) =>
+            editor.enablePhase.mutateAsync([
+              confirm.phase.id,
+              { early: confirm.early, start: { habitIds, from }, applyUpgrades },
+            ])
+          }
+          onClose={() => setConfirm(null)}
+        />
+      )}
+
+      {startingMore && current && (
+        <StartHabitsSheet
+          title={copy.pages.start.moreTitle}
+          habits={habitsOf(current).filter((h) => startState(h.startsOn, today) !== "started")}
+          detail={detail}
+          today={today}
+          onSubmit={({ habitIds, from }) => editor.startHabits.mutateAsync([habitIds, from])}
+          onClose={() => setStartingMore(false)}
+        />
+      )}
+
+      {confirm && confirm.kind !== "enable" && (
         <ConfirmDialog
           confirm={confirm}
-          habitCount={confirm.kind === "enable" ? habitsOf(confirm.phase).length : 0}
-          upgrades={
-            confirm.kind === "enable"
-              ? confirm.phase.targetUpgrades.map(upgradeText).filter((x): x is string => !!x)
-              : []
-          }
           readiness={readiness}
           onCancel={() => setConfirm(null)}
           onConfirm={() => {
             const c = confirm;
             setConfirm(null);
-            if (c.kind === "enable")
-              run(editor.enablePhase.mutateAsync([c.phase.id, { early: c.early }]));
-            else if (c.kind === "repeat") run(editor.repeatPhase.mutateAsync([c.phase.id]));
+            if (c.kind === "repeat") run(editor.repeatPhase.mutateAsync([c.phase.id]));
             else run(editor.lockPhase.mutateAsync([c.phase.id]));
           }}
         />
@@ -378,6 +412,10 @@ function ActivePhaseCard({
   phase,
   readiness: r,
   habitCount,
+  habits,
+  today,
+  onStartOne,
+  onChooseMore,
   name,
   onEnableNext,
   onRepeat,
@@ -388,6 +426,11 @@ function ActivePhaseCard({
   phase: Phase;
   readiness: PhaseReadiness;
   habitCount: number;
+  /** The phase's habits, in order (to show which have started). */
+  habits: readonly Habit[];
+  today: IsoDate;
+  onStartOne: (habit: Habit) => void;
+  onChooseMore: () => void;
   name: (habitId: string) => string;
   onEnableNext: (early: boolean) => void;
   onRepeat: () => void;
@@ -499,6 +542,13 @@ function ActivePhaseCard({
           ? a.pausedSince(fmt(pausedOn))
           : a.since(fmt(r.cycleStart ?? phase.history[0]?.date ?? ""), habitCount)}
       </p>
+
+      <StartedHabits
+        habits={habits}
+        today={today}
+        onStartOne={onStartOne}
+        onChooseMore={onChooseMore}
+      />
 
       <div className="mt-5" data-tour="phases-progress">
         <div className="flex items-end justify-between gap-3">
@@ -626,6 +676,131 @@ function ActivePhaseCard({
   );
 }
 
+// ---------- which of the current phase's habits have started ----------
+
+function StartedHabits({
+  habits,
+  today,
+  onStartOne,
+  onChooseMore,
+}: {
+  habits: readonly Habit[];
+  today: IsoDate;
+  onStartOne: (habit: Habit) => void;
+  onChooseMore: () => void;
+}) {
+  const st = copy.pages.start;
+  const of = (state: ReturnType<typeof startState>) =>
+    habits.filter((h) => startState(h.startsOn, today) === state);
+  const started = of("started");
+  const later = of("later").sort((a, b) => (a.startsOn ?? "").localeCompare(b.startsOn ?? ""));
+  const waiting = of("waiting");
+  if (habits.length === 0) return null;
+  const allStarted = later.length === 0 && waiting.length === 0;
+
+  return (
+    <div className="mt-4" data-testid="phase-started">
+      <div className="flex items-baseline justify-between gap-3 text-sm">
+        <p className="font-semibold">{st.startedCount(started.length, habits.length)}</p>
+        {later.length > 0 && (
+          <p className="text-muted-foreground">
+            {st.moreOn(later.length, fmt(later[0].startsOn!))}
+          </p>
+        )}
+      </div>
+      <div aria-hidden className="mt-2 flex gap-1">
+        {[...started, ...later, ...waiting].map((h) => {
+          const s = startState(h.startsOn, today);
+          return (
+            <span
+              key={h.id}
+              className={cn(
+                "h-1.5 flex-1 rounded-full",
+                s === "started"
+                  ? "bg-primary"
+                  : s === "later"
+                    ? "border border-dashed border-primary"
+                    : "bg-muted",
+              )}
+            />
+          );
+        })}
+      </div>
+
+      {!allStarted && (
+        <>
+          <p className="mt-3 rounded-xl bg-muted/60 px-3 py-2.5 text-sm text-muted-foreground">
+            {st.info}
+          </p>
+          <StartList title={st.started} count={started.length}>
+            {started.map((h) => (
+              <li key={h.id} className="flex items-center gap-3 py-2">
+                <span className="flex size-5 shrink-0 items-center justify-center rounded bg-primary text-primary-foreground">
+                  <Check aria-hidden className="size-3.5" strokeWidth={3} />
+                </span>
+                <span className="min-w-0 flex-1">{h.name}</span>
+                {typeof h.startsOn === "string" && (
+                  <span className="text-xs text-muted-foreground">{st.since(fmt(h.startsOn))}</span>
+                )}
+              </li>
+            ))}
+          </StartList>
+          <StartList title={st.startsLater} count={later.length}>
+            {later.map((h) => (
+              <li key={h.id} className="flex items-center gap-3 py-2">
+                <CalendarClock aria-hidden className="size-5 shrink-0 text-primary" />
+                <span className="min-w-0 flex-1">{h.name}</span>
+                <span className="rounded-lg border px-2 py-1 text-xs font-medium">
+                  {fmt(h.startsOn!)}
+                </span>
+              </li>
+            ))}
+          </StartList>
+          <StartList title={st.notStarted} count={waiting.length}>
+            {waiting.map((h) => (
+              <li key={h.id} className="flex items-center gap-3 py-2">
+                <span aria-hidden className="size-5 shrink-0 rounded border-2 border-input" />
+                <span className="min-w-0 flex-1 text-muted-foreground">{h.name}</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  aria-label={st.startNamed(h.name)}
+                  onClick={() => onStartOne(h)}
+                >
+                  {st.start}
+                </Button>
+              </li>
+            ))}
+          </StartList>
+          <Button onClick={onChooseMore} className="mt-3 w-full max-sm:h-12 max-sm:text-base">
+            {st.chooseMore}
+          </Button>
+        </>
+      )}
+    </div>
+  );
+}
+
+function StartList({
+  title,
+  count,
+  children,
+}: {
+  title: string;
+  count: number;
+  children: React.ReactNode;
+}) {
+  if (count === 0) return null;
+  return (
+    <section aria-label={title} className="mt-3">
+      <h3 className="border-b pb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+        {title} · {count}
+      </h3>
+      <ul className="divide-y text-sm">{children}</ul>
+    </section>
+  );
+}
+
 // ---------- other phases ----------
 
 function PhaseCard({
@@ -739,66 +914,34 @@ function PhaseCard({
 
 // ---------- confirmations ----------
 
+/** Repeat this phase / turn it off. (Enabling a phase has its own sheet: StartHabitsSheet.) */
 function ConfirmDialog({
   confirm,
-  habitCount,
-  upgrades,
   readiness,
   onCancel,
   onConfirm,
 }: {
-  confirm: NonNullable<Confirm>;
-  habitCount: number;
-  upgrades: string[];
+  confirm: Extract<NonNullable<Confirm>, { kind: "repeat" | "off" }>;
   readiness: PhaseReadiness;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
   const c = t.confirm;
   const label = phaseLabel(confirm.phase);
-  const title =
-    confirm.kind === "enable"
-      ? c.enableTitle(label)
-      : confirm.kind === "repeat"
-        ? c.repeatTitle
-        : c.offTitle(label);
-  const action =
-    confirm.kind === "enable" ? c.enable : confirm.kind === "repeat" ? c.repeat : c.off;
+  const repeat = confirm.kind === "repeat";
   return (
     <AlertDialog open onOpenChange={(open) => !open && onCancel()}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription render={<div />}>
-            {confirm.kind === "enable" ? (
-              <div className="flex flex-col gap-2">
-                <p>{c.enableBody(habitCount)}</p>
-                {confirm.early && <p>{c.earlyNote(readiness.rules.threshold)}</p>}
-                {upgrades.length > 0 && (
-                  <>
-                    <p className="font-medium text-foreground">{c.changes}</p>
-                    <ul className="list-disc pl-5">
-                      {upgrades.map((u) => (
-                        <li key={u}>{u}</li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-              </div>
-            ) : confirm.kind === "repeat" ? (
-              <p>{c.repeatBody(readiness.rules.windowDays)}</p>
-            ) : (
-              <p>{c.offBody}</p>
-            )}
+          <AlertDialogTitle>{repeat ? c.repeatTitle : c.offTitle(label)}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {repeat ? c.repeatBody(readiness.rules.windowDays) : c.offBody}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>{c.cancel}</AlertDialogCancel>
-          <AlertDialogAction
-            variant={confirm.kind === "off" ? "destructive" : "default"}
-            onClick={onConfirm}
-          >
-            {action}
+          <AlertDialogAction variant={repeat ? "default" : "destructive"} onClick={onConfirm}>
+            {repeat ? c.repeat : c.off}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

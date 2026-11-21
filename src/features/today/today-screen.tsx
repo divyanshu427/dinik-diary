@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
+import { ChevronRight, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Cell, Dashboard, Panel } from "@/components/dashboard";
@@ -34,6 +34,7 @@ import {
   dayStreak,
   eachDay,
   logicalDate,
+  startState,
   summarizeDay,
   weeklyCount,
   zonedParts,
@@ -48,6 +49,7 @@ import { DateNav } from "./date-nav";
 import { NoteDialog } from "./note-dialog";
 
 const t = copy.pages.today;
+const st = copy.pages.start;
 type DayType = DayStatus["type"];
 const DAY_TYPES = (["normal", "rest", "sick", "travel"] as const).map((value) => ({
   value,
@@ -262,6 +264,8 @@ export function TodayScreen() {
     });
   }
 
+  // Habits in a running phase that haven't started yet (or start on a later day).
+  const waitingCount = active.filter((h) => startState(h.startsOn, date) !== "started").length;
   const counted = summary.countedCount;
   const done = summary.doneCount;
   const left = Math.max(0, counted - done);
@@ -365,6 +369,9 @@ export function TodayScreen() {
                       <p className="text-muted-foreground">
                         {t.tiles.nextUp(leftNames.slice(0, 2), leftNames.length - 2)}
                       </p>
+                    )}
+                    {waitingCount > 0 && (
+                      <p className="text-muted-foreground">{st.todayWaiting(waitingCount)}</p>
                     )}
                   </div>
                 </div>
@@ -494,19 +501,44 @@ export function TodayScreen() {
             })
           )}
           {notDue.length > 0 && (
-            <details className="border-t px-4 py-3 text-sm text-muted-foreground">
+            <details
+              className="border-t px-4 py-3 text-sm text-muted-foreground"
+              data-testid="not-due"
+            >
               <summary className="cursor-pointer">{t.checklist.notDue(notDue.length)}</summary>
-              <ul className="mt-2 list-disc pl-5">
+              <ul className="mt-2 flex flex-col gap-1.5">
                 {notDue.map((h) => {
                   const pause = h.pauses.find((p) => p.from <= date && date <= p.to);
+                  const state = startState(h.startsOn, date);
+                  const note =
+                    state === "waiting"
+                      ? st.notStarted
+                      : state === "later"
+                        ? st.startsOn(formatShort(h.startsOn!))
+                        : pause
+                          ? t.checklist.pausedUntil(formatShort(pause.to))
+                          : null;
                   return (
-                    <li key={h.id}>
-                      {h.name}
-                      {pause && ` · ${t.checklist.pausedUntil(formatShort(pause.to))}`}
+                    <li key={h.id} className="flex justify-between gap-3" data-not-due={h.name}>
+                      <span>{h.name}</span>
+                      {note && (
+                        <span className={cn(state === "later" && "font-medium text-primary")}>
+                          {note}
+                        </span>
+                      )}
                     </li>
                   );
                 })}
               </ul>
+              {waitingCount > 0 && (
+                <Link
+                  href="/phases"
+                  className="mt-3 inline-flex items-center gap-0.5 font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  {st.startMore}
+                  <ChevronRight aria-hidden className="size-4" />
+                </Link>
+              )}
             </details>
           )}
         </Panel>

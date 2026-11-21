@@ -784,6 +784,76 @@ export const en = {
         `${recent > before ? "Up" : "Down"} from ${before}% to ${recent}% over the last two weeks.`,
       habitTitle: "Insight",
     },
+    /** Choosing which habits to start, and when (Phases, Habits and the first run). */
+    start: {
+      enableTitle: (label: string) => `Start ${label}`,
+      moreTitle: "Start more habits",
+      hint: "Choose the habits to start. The others wait until you start them.",
+      picked: (n: number, total: number, min: number, max: number) =>
+        `${n} of ${total} picked · we suggest ${min === max ? min : `${min} to ${max}`}`,
+      selectAll: "Select all",
+      clear: "Clear",
+      earlyNote: (target: number) =>
+        `You haven't reached ${target}% in the current phase yet. That's fine: you can start this now anyway.`,
+      upgrade: (line: string) => `Also change ${line}`,
+      when: "Start these",
+      today: "Today",
+      inDays: (n: number) => `In ${n} days`,
+      pickDate: "Pick a date",
+      dateLabel: "Start date",
+      footnote: (date: string) => `From ${date}. Days before a habit starts never count as missed.`,
+      submit: (n: number) => (n === 1 ? "Start 1 habit" : `Start ${n} habits`),
+      cancel: "Cancel",
+      everyDay: "every day",
+      // On the Phases page and the Habits page
+      startedCount: (n: number, total: number) => `${n} of ${total} habits started`,
+      moreOn: (n: number, date: string) => `${n} more on ${date}`,
+      info: "The average only counts the habits you've started. Habits you start later join it from their start day.",
+      started: "Started",
+      startsLater: "Starts later",
+      notStarted: "Not started",
+      since: (date: string) => `since ${date}`,
+      startsOn: (date: string) => `Starts ${date}`,
+      start: "Start",
+      startNamed: (name: string) => `Start ${name} today`,
+      chooseMore: "Choose more habits",
+      waiting: "Waiting to start",
+      newDay: (day: number) => `New · day ${day}`,
+      earlierDontCount: (date: string) => `started ${date} · earlier days don't count`,
+      phaseCount: (started: number, total: number) => `${started} of ${total} started`,
+      headerSoon: (n: number) => `${n} ${n === 1 ? "starts" : "start"} soon`,
+      headerNotStarted: (n: number) => `${n} not started`,
+      // Habit menu
+      startNow: "Start now",
+      startNowHint: "From today. Earlier days won't count as missed.",
+      pickStart: "Pick a start date",
+      pickStartHint: "It joins Today and the phase average from that day",
+      changeStart: "Change start date",
+      dontStart: "Don't start yet",
+      dontStartHint: "Back to waiting; nothing is lost",
+      tomorrow: "Tomorrow",
+      inAWeek: "In a week",
+      otherDate: "Other date…",
+      dateTitle: (name: string) => `When should ${name} start?`,
+      save: "Save",
+      // Today
+      todayWaiting: (n: number) =>
+        n === 1
+          ? "Only started habits count. 1 more is waiting."
+          : `Only started habits count. ${n} more are waiting.`,
+      startMore: "Start more from Phases",
+      // First run
+      firstStep: (n: number, total: number) => `Step ${n} of ${total}`,
+      firstTitle: "Which habits do you want to start with?",
+      firstHint: "Start small. You can start the rest any time from Habits or Phases.",
+      firstSubmit: (n: number) => (n === 1 ? "Start with 1 habit" : `Start with ${n} habits`),
+      firstAll: (n: number) => `Start all ${n} instead`,
+      tourTitle: "You're set. Want a quick tour?",
+      tourHint:
+        "Thirty seconds on what each part of Today does. You can take it any time from the ⓘ at the top.",
+      tourYes: "Show me",
+      tourNo: "Not now",
+    },
     phases: {
       title: "Phases",
       subtitle: "Add habits a few at a time, when you're ready.",
@@ -856,13 +926,6 @@ export const en = {
         removeUpgrade: (habit: string) => `Remove the target change for ${habit}`,
       },
       confirm: {
-        enableTitle: (label: string) => `Enable ${label}?`,
-        enableBody: (habits: number) =>
-          `${habits} ${habits === 1 ? "habit joins" : "habits join"} your checklist from today. Habits from earlier phases stay on.`,
-        earlyNote: (target: number) =>
-          `You haven't reached ${target}% yet. That's fine: you can start it now anyway.`,
-        changes: "Targets that change from today:",
-        enable: "Enable",
         repeatTitle: "Repeat this phase?",
         repeatBody: (window: number) =>
           `The ${window}-day window starts again from today. Nothing is lost and nothing counts against you.`,
