@@ -1,8 +1,9 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { PhoneBrand } from "@/components/app-shell/phone-brand";
 import { Cell, Dashboard, Panel } from "@/components/dashboard";
 import { PageHeader } from "@/components/page-header";
 import { ProgressRing } from "@/components/progress-ring";
@@ -10,11 +11,9 @@ import { SegmentedControl } from "@/components/segmented-control";
 import { StatTile } from "@/components/stat-tile";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { copy } from "@/copy";
 import { isUnlocked } from "@/data/habit-ops";
 import type { DayStatus, Habit, HabitLog, HabitTarget } from "@/data/schema";
-import { TodayActivities } from "@/features/activities/today-activities";
 import { phaseLabel } from "@/features/habits/format";
 import { TodayHealth } from "@/features/health/today-health";
 import { MetricsPanel } from "@/features/metrics/metrics-panel";
@@ -33,7 +32,6 @@ import {
 } from "@/hooks/use-data";
 import { useNow, useToday } from "@/hooks/use-today";
 import {
-  addDays,
   dayStreak,
   eachDay,
   logicalDate,
@@ -47,6 +45,7 @@ import { cn } from "@/lib/utils";
 import { useUiStore } from "@/stores/ui-store";
 import { CheckGroup, GROUP_ORDER, type CheckRowModel } from "./checklist";
 import { dayTitle, formatLongDate, formatShort } from "./format";
+import { DateNav } from "./date-nav";
 import { NoteDialog } from "./note-dialog";
 
 const t = copy.pages.today;
@@ -292,48 +291,30 @@ export function TodayScreen() {
 
   return (
     <>
+      <PhoneBrand>
+        {activePhases.map((p) => (
+          <Badge key={p.id} variant="secondary" className="h-7 max-w-full truncate px-3">
+            {phaseLabel(p)}
+          </Badge>
+        ))}
+      </PhoneBrand>
       <PageHeader
         eyebrow={formatLongDate(date)}
         title={dayTitle(date, today!, { today: t.title, yesterday: t.yesterday })}
+        inlineActions
         actions={
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             {activePhases.map((p) => (
-              <Badge key={p.id} variant="secondary" className="h-7 px-3">
+              <Badge key={p.id} variant="secondary" className="hidden h-7 px-3 md:inline-flex">
                 {phaseLabel(p)}
               </Badge>
             ))}
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="icon"
-                aria-label={t.nav.previous}
-                onClick={() => goTo(addDays(date, -1))}
-              >
-                <ChevronLeft aria-hidden />
-              </Button>
-              <Input
-                type="date"
-                aria-label={t.nav.pick}
-                value={date}
-                max={today!}
-                onChange={(e) => e.target.value && goTo(e.target.value)}
-                className="h-8 w-40"
-              />
-              <Button
-                variant="outline"
-                size="icon"
-                aria-label={t.nav.next}
-                disabled={isToday}
-                onClick={() => goTo(addDays(date, 1))}
-              >
-                <ChevronRight aria-hidden />
-              </Button>
-            </div>
             {!isToday && (
               <Button variant="secondary" size="sm" onClick={() => setSelectedDate(null)}>
                 {t.nav.backToToday}
               </Button>
             )}
+            <DateNav date={date} today={today!} onChange={goTo} />
           </div>
         }
       />
@@ -356,79 +337,108 @@ export function TodayScreen() {
           </Cell>
         )}
         <Cell span={12} fullOnTablet>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:gap-5">
-            <div className="flex items-center gap-4 rounded-xl border bg-card p-4">
-              <ProgressRing
-                percent={summary.averageProgress ?? 0}
-                label={counted ? `${done}/${counted}` : "—"}
-                ariaLabel={counted ? t.tiles.doneNote(done, counted) : t.tiles.nothingDue}
+          {/* Phones: one summary card with two small tiles inside. Laptop: a row of 4 tiles. */}
+          <div className="rounded-2xl border bg-card p-4 md:rounded-none md:border-0 md:bg-transparent md:p-0">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:gap-5">
+              <div className="col-span-2 flex items-center gap-4 md:col-span-1 md:rounded-xl md:border md:bg-card md:p-4">
+                <ProgressRing
+                  percent={summary.averageProgress ?? 0}
+                  label={counted ? `${done}/${counted}` : "—"}
+                  ariaLabel={counted ? t.tiles.doneNote(done, counted) : t.tiles.nothingDue}
+                />
+                <div className="min-w-0">
+                  <p className="hidden text-sm text-muted-foreground md:block">{t.tiles.done}</p>
+                  <p className="font-heading text-lg leading-snug font-semibold">
+                    {counted ? (
+                      <>
+                        {t.tiles.doneValue(done, counted)}
+                        <span className="md:hidden"> {t.tiles.doneSuffix}</span>
+                      </>
+                    ) : (
+                      t.tiles.nothingDue
+                    )}
+                  </p>
+                  <div className="text-sm md:hidden">
+                    <p className={cn("font-medium", left === 0 && counted > 0 && "text-success")}>
+                      {left === 0 && counted > 0
+                        ? t.tiles.allDone
+                        : isToday
+                          ? t.tiles.leftLine(left)
+                          : t.tiles.leftPastLine(left)}
+                    </p>
+                    {isToday && left > 0 && leftNames.length > 0 && (
+                      <p className="text-muted-foreground">
+                        {t.tiles.nextUp(leftNames.slice(0, 2), leftNames.length - 2)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <StatTile
+                label={t.tiles.streak}
+                value={copy.pages.habits.streakValue(streak?.current ?? 0, "days")}
+                note={t.tiles.streakNote(s.unlockThreshold)}
+                tone={streak && streak.current > 0 ? "positive" : "neutral"}
+                className="max-md:border-0 max-md:bg-muted/60 max-md:p-3"
               />
-              <div className="min-w-0">
-                <p className="text-sm text-muted-foreground">{t.tiles.done}</p>
-                <p className="font-heading text-lg font-semibold">
-                  {counted ? t.tiles.doneValue(done, counted) : t.tiles.nothingDue}
+              <div
+                className="rounded-xl border bg-card p-4 max-md:border-0 max-md:bg-muted/60 max-md:p-3"
+                data-testid="phase-tile"
+              >
+                <p className="text-sm text-muted-foreground">{t.tiles.phase}</p>
+                <p className="mt-1 font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
+                  {phaseAverage !== null ? `${phaseAverage}%` : copy.pages.habits.kpi.none}
+                </p>
+                <div
+                  className="relative mt-2 h-2 rounded-full bg-muted max-md:bg-background"
+                  role="img"
+                  aria-label={t.tiles.phaseNote(s.unlockThreshold)}
+                >
+                  <div
+                    className={cn("h-full rounded-full", phaseReady ? "bg-success" : "bg-primary")}
+                    style={{ width: `${Math.min(100, phaseAverage ?? 0)}%` }}
+                  />
+                  <div
+                    aria-hidden
+                    className="absolute -top-1 h-4 w-0.5 rounded bg-foreground"
+                    style={{ left: `${s.unlockThreshold}%` }}
+                  />
+                </div>
+                <p
+                  className={cn(
+                    "mt-2 text-sm",
+                    phaseReady ? "font-medium text-success" : "text-muted-foreground",
+                  )}
+                >
+                  {phaseReady && readiness?.next
+                    ? t.tiles.phaseReady(phaseLabel(readiness.next))
+                    : readiness?.state === "paused"
+                      ? t.tiles.phasePaused
+                      : readiness?.phase
+                        ? t.tiles.phaseDay(
+                            readiness.dayNumber,
+                            readiness.rules.windowDays,
+                            s.unlockThreshold,
+                          )
+                        : t.tiles.phaseEmpty}
                 </p>
               </div>
+              <StatTile
+                label={isToday ? t.tiles.leftBeforeBed : t.tiles.left}
+                value={String(left)}
+                note={
+                  left === 0 && counted > 0
+                    ? t.tiles.allDone
+                    : !isToday
+                      ? t.tiles.leftPast
+                      : leftNames.length
+                        ? t.tiles.nextUp(leftNames.slice(0, 2), leftNames.length - 2)
+                        : undefined
+                }
+                tone={left === 0 && counted > 0 ? "positive" : "neutral"}
+                className="hidden md:block"
+              />
             </div>
-            <StatTile
-              label={t.tiles.streak}
-              value={copy.pages.habits.streakValue(streak?.current ?? 0, "days")}
-              note={t.tiles.streakNote(s.unlockThreshold)}
-              tone={streak && streak.current > 0 ? "positive" : "neutral"}
-            />
-            <div className="rounded-xl border bg-card p-4" data-testid="phase-tile">
-              <p className="text-sm text-muted-foreground">{t.tiles.phase}</p>
-              <p className="mt-1 font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
-                {phaseAverage !== null ? `${phaseAverage}%` : copy.pages.habits.kpi.none}
-              </p>
-              <div
-                className="relative mt-2 h-2 rounded-full bg-muted"
-                role="img"
-                aria-label={t.tiles.phaseNote(s.unlockThreshold)}
-              >
-                <div
-                  className={cn("h-full rounded-full", phaseReady ? "bg-success" : "bg-primary")}
-                  style={{ width: `${Math.min(100, phaseAverage ?? 0)}%` }}
-                />
-                <div
-                  aria-hidden
-                  className="absolute -top-1 h-4 w-0.5 rounded bg-foreground"
-                  style={{ left: `${s.unlockThreshold}%` }}
-                />
-              </div>
-              <p
-                className={cn(
-                  "mt-2 text-sm",
-                  phaseReady ? "font-medium text-success" : "text-muted-foreground",
-                )}
-              >
-                {phaseReady && readiness?.next
-                  ? t.tiles.phaseReady(phaseLabel(readiness.next))
-                  : readiness?.state === "paused"
-                    ? t.tiles.phasePaused
-                    : readiness?.phase
-                      ? t.tiles.phaseDay(
-                          readiness.dayNumber,
-                          readiness.rules.windowDays,
-                          s.unlockThreshold,
-                        )
-                      : t.tiles.phaseEmpty}
-              </p>
-            </div>
-            <StatTile
-              label={isToday ? t.tiles.leftBeforeBed : t.tiles.left}
-              value={String(left)}
-              note={
-                left === 0 && counted > 0
-                  ? t.tiles.allDone
-                  : !isToday
-                    ? t.tiles.leftPast
-                    : leftNames.length
-                      ? t.tiles.nextUp(leftNames.slice(0, 2), leftNames.length - 2)
-                      : undefined
-              }
-              tone={left === 0 && counted > 0 ? "positive" : "neutral"}
-            />
           </div>
         </Cell>
 
@@ -515,7 +525,6 @@ export function TodayScreen() {
               className="flex w-full [&>button]:flex-1 [&>button]:px-2"
             />
           </Panel>
-          <TodayActivities date={date} today={today!} />
           <TodayHealth date={date} />
         </Cell>
 

@@ -24,7 +24,7 @@ test.describe("settings: day, time, units and backups", () => {
     );
 
     await page.goto("/");
-    await expect(page.getByRole("region", { name: /timeline/i })).toContainText(
+    await expect(page.getByRole("region", { name: "Your day" })).toContainText(
       "Day runs from 6:00 AM",
     );
     await expect(page.getByRole("region", { name: "Your numbers" })).toContainText("lb");

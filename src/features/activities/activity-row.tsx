@@ -97,30 +97,42 @@ export function ActivityRow({
       >
         {a.durationMinutes == null ? t.durationMissing : formatDuration(a.durationMinutes)}
       </span>
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={<Button variant="ghost" size="icon-sm" aria-label={t.actions.more(a.title)} />}
-        >
-          <Ellipsis aria-hidden />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-auto min-w-44">
-          <DropdownMenuItem onClick={() => onEdit(a)}>
-            <Pencil aria-hidden />
-            {t.actions.edit}
-          </DropdownMenuItem>
-          {onDuplicate && (
-            <DropdownMenuItem onClick={() => onDuplicate(a)}>
-              <Copy aria-hidden />
-              {t.actions.duplicate}
-            </DropdownMenuItem>
-          )}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive" onClick={() => onDelete(a)}>
-            <Trash2 aria-hidden />
-            {t.actions.delete}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <ActivityMenu activity={a} onEdit={onEdit} onDelete={onDelete} onDuplicate={onDuplicate} />
     </li>
+  );
+}
+
+/** The ⋯ menu of an entry: edit, copy to today, delete. */
+export function ActivityMenu({
+  activity: a,
+  onEdit,
+  onDelete,
+  onDuplicate,
+}: Pick<ActivityRowProps, "activity" | "onEdit" | "onDelete" | "onDuplicate">) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={<Button variant="ghost" size="icon-sm" aria-label={t.actions.more(a.title)} />}
+      >
+        <Ellipsis aria-hidden />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-auto min-w-44">
+        <DropdownMenuItem onClick={() => onEdit(a)}>
+          <Pencil aria-hidden />
+          {t.actions.edit}
+        </DropdownMenuItem>
+        {onDuplicate && (
+          <DropdownMenuItem onClick={() => onDuplicate(a)}>
+            <Copy aria-hidden />
+            {t.actions.duplicate}
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem variant="destructive" onClick={() => onDelete(a)}>
+          <Trash2 aria-hidden />
+          {t.actions.delete}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

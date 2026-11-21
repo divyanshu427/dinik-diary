@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 const numbers = (page: Page) => page.getByRole("region", { name: "Your numbers" });
-const timeline = (page: Page) => page.getByRole("region", { name: /timeline/i });
+const timeline = (page: Page) => page.getByRole("region", { name: "Your day" });
 const dialog = (page: Page) => page.getByRole("dialog");
 
 async function openToday(page: Page) {
@@ -19,7 +19,7 @@ async function enter(page: Page, label: string, value: string) {
 
 async function logTimed(page: Page, title: string, category: string, start: string, end: string) {
   await page
-    .getByRole("region", { name: /What you did/ })
+    .getByRole("region", { name: "Your day" })
     .getByRole("button", { name: "Log activity" })
     .click();
   const d = dialog(page);

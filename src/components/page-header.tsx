@@ -12,6 +12,8 @@ interface PageHeaderProps {
   back?: { href: string; label: string };
   /** Controls on the right, e.g. a Week / Month / All time switch. */
   actions?: ReactNode;
+  /** Keep the actions beside the title on phones too (small controls only). */
+  inlineActions?: boolean;
   className?: string;
 }
 
@@ -22,12 +24,14 @@ export function PageHeader({
   subtitle,
   back,
   actions,
+  inlineActions,
   className,
 }: PageHeaderProps) {
   return (
     <header
       className={cn(
-        "mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between",
+        "mb-6 flex gap-4 sm:flex-row sm:items-end sm:justify-between",
+        inlineActions ? "flex-row items-end justify-between" : "flex-col",
         className,
       )}
     >

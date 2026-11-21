@@ -40,6 +40,9 @@ export const en = {
         done: "Habits done",
         doneNote: (done: number, total: number) => `${done} of ${total} done`,
         doneValue: (done: number, total: number) => `${done} of ${total}`,
+        doneSuffix: "habits done",
+        leftLine: (n: number) => `${n} left before bed`,
+        leftPastLine: (n: number) => `${n} not done that day`,
         nextUp: (names: string[], more: number) =>
           `Next: ${names.join(", ")}${more > 0 ? ` +${more}` : ""}`,
         nothingDue: "Nothing due",
@@ -72,6 +75,7 @@ export const en = {
         night: "Night",
       },
       groupCount: (done: number, total: number) => `${done}/${total}`,
+      fromNumbers: "fills from Your numbers",
       tonight: "Tonight",
       thisEvening: "This evening",
       weekly: (done: number, times: number) => `${done} of ${times} this week`,
@@ -114,15 +118,6 @@ export const en = {
         types: { normal: "Normal", rest: "Rest", sick: "Sick", travel: "Travel" },
         banner: (type: string) => `${type} day: streaks are paused and nothing counts against you.`,
       },
-      activities: {
-        title: "What you did today",
-        titleOther: "What you did",
-        empty: "Trips, meals, movies and interviews you log will show here.",
-        log: "Log activity",
-        repeatYesterday: (n: number) => `Repeat yesterday (${n})`,
-        count: (n: number) => `${n} ${n === 1 ? "entry" : "entries"}`,
-        seeAll: "See all activities",
-      },
       metrics: {
         title: "Your numbers",
         subtitle: "Saved when you leave a box. Linked habits tick themselves.",
@@ -149,6 +144,11 @@ export const en = {
           hours: "h",
           scale: "1–5",
         },
+        scaleEnds: {
+          mood: { low: "Low", high: "Great" },
+          energy: { low: "Drained", high: "Full" },
+        },
+        scaleOption: (label: string, n: number) => `${label} ${n} of 5`,
         linked: (name: string) => `Counts for ${name}`,
         invalid: (label: string, min: string, max: string) =>
           `${label}: enter a number from ${min} to ${max}.`,
@@ -156,9 +156,14 @@ export const en = {
         failed: (message: string) => `Couldn't save: ${message}`,
       },
       timeline: {
-        title: "Today's timeline",
-        titleOther: "Timeline",
-        subtitle: (from: string, placed: string) => `Day runs from ${from} · ${placed} placed`,
+        title: "Your day",
+        subtitle: (from: string, placed: string, activities: number) =>
+          `Day runs from ${from} · ${placed} placed · ${activities} ${activities === 1 ? "activity" : "activities"}`,
+        log: "Log activity",
+        logShort: "Log",
+        repeatYesterday: (n: number) => `Repeat yesterday (${n})`,
+        seeAll: "See all activities",
+        untimedLabel: "Entries without a start time",
         empty: "Log your wake-up time and activities with a start time, and your day appears here.",
         gapPrompt: (from: string, to: string) => `Nothing logged between ${from} and ${to}`,
         gapPromptHint: "What were you doing? Add it so your reports stay honest.",
@@ -182,7 +187,7 @@ export const en = {
         fixConfirm: "Fix overlap",
         cancel: "Cancel",
         untimed: (n: number) =>
-          `${n} ${n === 1 ? "entry has" : "entries have"} no start time, so ${n === 1 ? "it isn't" : "they aren't"} placed here.`,
+          `${n} ${n === 1 ? "entry has" : "entries have"} no start time or length, so ${n === 1 ? "it isn't" : "they aren't"} placed on the bar.`,
         stripLabel: "Your day at a glance",
         now: "Now",
         listLabel: "Timeline entries",
@@ -1285,6 +1290,8 @@ export const en = {
     more: {
       title: "More",
       subtitle: "Everything else in Dinik Diary.",
+      tabHint: "Tab",
+      back: "More",
     },
     brand: {
       phase: 1,

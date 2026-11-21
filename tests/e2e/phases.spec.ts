@@ -43,7 +43,8 @@ test.describe("phase manager", () => {
     await expect(page.getByTestId("phase-history")).toContainText(`${P1} completed`);
 
     await openToday(page);
-    await expect(habitRow(page, "Floss")).toBeVisible();
+    // A night habit: its group may start folded before the evening, so check it's on the list.
+    await expect(habitRow(page, "Floss")).toBeAttached();
     await expect(habitRow(page, "Bath")).toBeVisible(); // Phase 1 stays on
     await expect(habitRow(page, "Daily steps")).toContainText("0 / 8,000 steps");
   });

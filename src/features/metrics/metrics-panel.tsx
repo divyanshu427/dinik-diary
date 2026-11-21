@@ -11,6 +11,7 @@ import { formatDuration } from "@/features/activities/summary";
 import { formatNumber } from "@/features/today/format";
 import { useMetrics, useSetMetric } from "@/hooks/use-metrics";
 import { addDays, sleepMinutes, type IsoDate } from "@/lib/core";
+import { cn } from "@/lib/utils";
 
 const t = copy.pages.today.metrics;
 
@@ -23,9 +24,10 @@ const NUMBER_FIELDS: readonly NumberKey[] = [
   "weight",
   "screen_time",
   "reels_minutes",
-  "mood",
-  "energy",
 ];
+
+/** 1–5 scales, picked with a row of buttons. */
+const SCALE_FIELDS = ["mood", "energy"] as const;
 
 function unitFor(key: NumberKey, units: Settings["units"]): string {
   switch (key) {
@@ -168,9 +170,68 @@ export function MetricsPanel({
               );
             })}
           </div>
+
+          {SCALE_FIELDS.map((key) => {
+            const saved = find(date, key)?.valueNum ?? null;
+            return (
+              <ScaleField
+                key={key}
+                label={t.labels[key]}
+                ends={t.scaleEnds[key]}
+                value={saved}
+                onPick={(v) => save(date, key, v === saved ? null : v)}
+              />
+            );
+          })}
         </div>
       )}
     </Panel>
+  );
+}
+
+/** 1 to 5 as buttons; tapping the chosen one again clears it. */
+function ScaleField({
+  label,
+  ends,
+  value,
+  onPick,
+}: {
+  label: string;
+  ends: { low: string; high: string };
+  value: number | null;
+  onPick: (value: number) => void;
+}) {
+  const id = useId();
+  return (
+    <div role="radiogroup" aria-labelledby={id}>
+      <p id={id} className="mb-1.5 text-sm font-medium">
+        {label}
+      </p>
+      <div className="grid grid-cols-5 gap-2">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            key={n}
+            type="button"
+            role="radio"
+            aria-checked={value === n}
+            aria-label={t.scaleOption(label, n)}
+            onClick={() => onPick(n)}
+            className={cn(
+              "h-11 rounded-xl border text-base font-semibold tabular-nums transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+              value === n
+                ? "border-primary bg-primary text-primary-foreground"
+                : "bg-card hover:border-primary",
+            )}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+      <div aria-hidden className="mt-1 flex justify-between text-xs text-muted-foreground">
+        <span>{ends.low}</span>
+        <span>{ends.high}</span>
+      </div>
+    </div>
   );
 }
 

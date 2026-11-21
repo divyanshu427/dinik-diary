@@ -51,15 +51,27 @@ function DialogContent({
         data-slot="dialog-content"
         className={cn(
           "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          // Phones: a bottom sheet that slides up, scrolls when tall, and clears the home bar.
+          "max-sm:top-auto max-sm:bottom-0 max-sm:left-0 max-sm:max-h-[92dvh] max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:overflow-y-auto max-sm:rounded-none max-sm:rounded-t-3xl max-sm:px-5 max-sm:pt-3 max-sm:pb-[calc(1.25rem+env(safe-area-inset-bottom))] max-sm:duration-200 max-sm:data-open:fade-in-100 max-sm:data-open:zoom-in-100 max-sm:data-open:slide-in-from-bottom max-sm:data-closed:fade-out-100 max-sm:data-closed:zoom-out-100 max-sm:data-closed:slide-out-to-bottom",
           className,
         )}
         {...props}
       >
+        <div
+          aria-hidden
+          className="mx-auto h-1 w-10 rounded-full bg-muted-foreground/25 sm:hidden"
+        />
         {children}
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            render={<Button variant="ghost" className="absolute top-2 right-2" size="icon-sm" />}
+            render={
+              <Button
+                variant="ghost"
+                className="absolute top-2 right-2 max-sm:top-5 max-sm:right-4"
+                size="icon-sm"
+              />
+            }
           >
             <XIcon />
             <span className="sr-only">Close</span>
@@ -89,6 +101,8 @@ function DialogFooter({
       data-slot="dialog-footer"
       className={cn(
         "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end",
+        // Phones: buttons side by side and full width, at the bottom of the sheet.
+        "max-sm:mx-0 max-sm:mb-0 max-sm:flex-row max-sm:flex-wrap max-sm:border-t-0 max-sm:bg-transparent max-sm:p-0 max-sm:pt-1 max-sm:*:h-11 max-sm:*:flex-[1_1_auto]",
         className,
       )}
       {...props}
@@ -105,7 +119,10 @@ function DialogTitle({ className, ...props }: DialogPrimitive.Title.Props) {
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn("font-heading text-base leading-none font-medium", className)}
+      className={cn(
+        "font-heading text-base leading-none font-medium max-sm:text-xl max-sm:leading-tight max-sm:font-semibold",
+        className,
+      )}
       {...props}
     />
   );

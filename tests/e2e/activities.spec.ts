@@ -65,14 +65,14 @@ test.describe("activities", () => {
     await expect(entry(page, "Interview")).toBeVisible();
 
     await page.goto("/");
-    const panel = page.getByRole("region", { name: "What you did today" });
+    const panel = page.getByRole("region", { name: "Your day" });
     await expect(panel.locator('[data-activity="Visited the fort"]')).toContainText("5:00 PM");
     await expect(panel.locator('[data-activity="Interview"]')).toContainText("30 min");
   });
 
   test("log from Today without a duration: it's flagged", async ({ page }) => {
     await page.goto("/");
-    const panel = page.getByRole("region", { name: "What you did today" });
+    const panel = page.getByRole("region", { name: "Your day" });
     await panel.getByRole("button", { name: "Log activity" }).click();
     await logActivity(page, { title: "Watched a movie", category: "Entertainment" });
     await expect(panel.locator('[data-activity="Watched a movie"]')).toContainText("duration?");
@@ -98,7 +98,7 @@ test.describe("activities", () => {
   test("repeat yesterday's activities on today", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "Previous day" }).click();
-    const panel = page.getByRole("region", { name: "What you did" });
+    const panel = page.getByRole("region", { name: "Your day" });
     await panel.getByRole("button", { name: "Log activity" }).click();
     await logActivity(page, {
       title: "Job applications",
@@ -108,7 +108,7 @@ test.describe("activities", () => {
     await expect(panel.locator('[data-activity="Job applications"]')).toBeVisible();
 
     await page.getByRole("button", { name: "Back to today" }).click();
-    const today = page.getByRole("region", { name: "What you did today" });
+    const today = page.getByRole("region", { name: "Your day" });
     await today.getByRole("button", { name: "Repeat yesterday (1)" }).click();
     await expect(today.locator('[data-activity="Job applications"]')).toContainText("1 h");
   });

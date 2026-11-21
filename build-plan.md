@@ -34,14 +34,14 @@ Step-by-step plan for building the app described in [plan.md](plan.md).
 | | 12.5 | Health reports | Upload reports, key values and trends | ✅ Done |
 | | 13 | PWA and backups | Installable on phone, offline, backup reminder | ✅ Done (phone install after Deploy) |
 | | ★ | **Milestone: use it for 14 days** | Fix what annoys me before Stage 2 | |
-| **2. Backend, bot, AI** (accounts needed) | 14 | Deploy | GitHub + Vercel, app online | |
+| **2. Backend, sync, AI** (accounts needed) | 14 | Deploy | GitHub + Vercel, app online | |
 | | 14.5 | AI health advisor | Describe what's wrong in my words; AI suggests the plan (moved up from the coach) | |
 | | 15 | Supabase and sync | Same data on laptop and phone | |
-| | 16 | Telegram bot basics | Messages saved, `/today`, quick-tick buttons | |
+| | 16 | Phone notifications | Web push on the installed app (Android); tap opens the right screen | |
 | | 17 | Reminders and scheduler | 9:30 PM reminder, nudge, per-habit reminders | |
-| | 18 | AI parsing + Day log screen | Message → habits + activities; web chat like the mock-up | |
+| | 18 | AI parsing + Day log screen | Message → habits + activities; in-app chat like the mock-up | |
 | | 19 | Review and corrections | "What it understood" panel: approve/fix unsure items | |
-| | 20 | Voice input | Speak my day (Telegram + mic button) | |
+| | 20 | Voice input | Speak my day (mic button) | |
 | | 21 | AI coach | "Focus for next week" card | |
 | | 22 | Extras | PDF export, share link, photos, integrations | |
 
@@ -88,11 +88,11 @@ Reports follow the `/brand` preview page.
 - **Today:** summary card (progress ring "5/8", habits done, current streak, how many are left, next-phase progress bar) → checklist on the left, "What you did today" on the right.
 - **Habits:** filter chips → active phase as a table (last 14 days, streak, 14-day %) → locked phases collapsed below; habit detail panel on the right.
 - **Phases:** active phase card with progress to unlock, locked phase cards in a grid with "Enable early"; side column with a 14-day completion chart, the unlock rules, and history.
-- **Day log (Stage 2):** chat on the left (same conversation as the Telegram bot); "What it understood" on the right.
+- **Day log (Stage 2):** chat with the AI on the left; "What it understood" on the right.
 
 **Navigation (updated)**
-- Laptop sidebar, main group: **Today, Habits, Activities, Reports, Phases** (+ **Day log** in Stage 2). Second group: Concerns, Settings, Brand preview.
-- Phone tab bar: **Today, Habits, Reports, Phases, More** (More: Activities, Concerns, Settings, Brand preview; Day log joins the tab bar in Stage 2).
+- Laptop sidebar, main group: **Today, Habits, Activities, Reports, Phases** (+ **Day log** in Stage 2). Second group: Health, Settings, Brand preview.
+- Phone tab bar: **Today, Habits, Activities, Reports, More** (More opens a bottom sheet: Phases, Health, Settings, Brand preview; Day log joins the tab bar in Stage 2). Dialogs and menus open as bottom sheets on phones.
 
 ---
 
@@ -178,7 +178,7 @@ Later phases, not 5.5 (listed so nothing is lost)
 - Quick entry on the habit panel (+500, +1,000, Enter total) → Phase 6
 - Per-habit insight text ("You hit this most on weekends…") → Phase 9
 - "Active · day 9 of 14 · 76%" on the phase header, and "becomes 8,000 in Phase 2" → Phase 11
-- Per-habit reminder time → Phase 17; "Auto-tick from bot messages" → Phase 18
+- Per-habit reminder time → Phase 17; "Auto-tick from Day log" → Phase 18
 
 Tests
 - Unit: habit-stats (rest days, not-due days, partial days, streaks); database upgrade adds part of day; old backup without it imports
@@ -437,11 +437,13 @@ How it was built (decisions)
 ## ★ Milestone — Use it for 14 days
 - Use Phase 1 habits daily, log activities, check the weekly report.
 - Write down what's annoying or missing. Fix the top items before Stage 2.
-- Collect **20–30 real "my day" messages** (as I'd type them to the bot) for Build Phase 18.
+- Collect **20–30 real "my day" messages** (as I'd type them into the Day log) for Build Phase 18.
 
 ---
 
-# Stage 2 — Backend, bot and AI
+# Stage 2 — Backend, sync and AI
+
+> **No Telegram bot (decided 2026-11-21).** Dinik Diary runs as an installed app on my Android phone, so the in-app Day log replaces the bot and phone notifications replace bot reminders. One place for everything, and health notes stay out of a chat app.
 
 > Details here are lighter on purpose. They'll be planned in detail when Stage 1 is done, using what I learn from real use.
 
@@ -463,36 +465,37 @@ Moved up from the AI coach (decided 2026-11-21): the AI needs the server part fr
 - `SupabaseRepository` with the same interfaces; import my JSON backup
 - **Done when:** laptop and phone show the same data.
 
-## Build Phase 16 — Telegram bot basics
-- Bot token, webhook endpoint, my chat ID only, secret token check
-- Raw messages saved, `/today`, `/habits` quick-tick buttons, `/undo`, `/help`
-- Discuss here: serverless time limits, webhook vs polling
-- **Done when:** a message I send is saved and `/today` replies with my checklist.
+## Build Phase 16 — Phone notifications
+- Web push: "Allow notifications" in Settings, subscription saved in Supabase per device (phone and laptop)
+- Service worker shows the notification; tapping it opens the right screen (Day log, Today or Health check-in)
+- Quick actions on the notification where Android supports them (e.g. "Open Day log", "Later")
+- Settings: test notification button, quiet hours, a note on turning off battery saving for the app
+- **Done when:** a test notification reaches my Android phone with the app closed, and tapping it opens the Day log.
 
 ## Build Phase 17 — Reminders and scheduler
-- 9:30 PM "How was your day?", one nudge, weekly summary message
+- 9:30 PM "How was your day?", one nudge if I haven't logged, weekly summary notification
 - **Per-habit reminder time** (e.g. Daily steps at 6:30 PM), shown on the habit panel
-- Discuss here: Vercel Cron vs Supabase pg_cron vs GitHub Actions, free-tier limits
+- Health check-in reminder while an issue is active
+- Scheduler: Supabase pg_cron (likely), with GitHub Actions or Vercel Cron as fallbacks; compare free-tier limits here
 - **Done when:** I get the nightly reminder on time for 3 days in a row.
 
 ## Build Phase 18 — AI parsing + Day log screen
 - Gemini provider interface, prompt, Zod schema (plan.md §7); golden test set from my messages
 - **Day log screen** (reference: Day log mock-up), in the main navigation:
-  - chat on the left, **same conversation as the Telegram bot**; the bot asks "How was your day?" and follow-ups ("What were you doing 2–5 PM?") with quick-reply chips
+  - chat on the left; the AI asks "How was your day?" and follow-ups ("What were you doing 2–5 PM?") with quick-reply chips
   - "Tell me about your day" box with a send button
 - **"Log your day"** card on Today (sends to the same chat)
-- Per-habit setting **"Auto-tick from bot messages"** (on/off)
+- Per-habit setting **"Auto-tick from Day log"** (on/off)
 - **Done when:** my sample days parse correctly with minimal corrections.
 
 ## Build Phase 19 — Review and corrections
 - **"What it understood"** panel beside the Day log chat: habits ticked (chips), activities with duration and a confidence label ("Sure" / "You told it" / "Check this"), "Edit anything that is wrong"
 - **"New category?"** card: keep in a suggested category or make a new one
 - "Your original message" note (raw text is always kept for re-reading later)
-- The same approve/fix buttons in Telegram
 - **Done when:** nothing uncertain is saved without my OK.
 
 ## Build Phase 20 — Voice input
-- Telegram voice notes → transcription → parser; mic button on Day log and Today
+- Mic button on Day log and Today → transcription → parser (works in the installed app on Android)
 - **Done when:** I can speak my day and get it logged.
 
 ## Build Phase 21 — AI coach
@@ -502,4 +505,4 @@ Moved up from the AI coach (decided 2026-11-21): the AI needs the server part fr
 ## Build Phase 22 — Extras (pick as needed)
 - PDF report export, read-only share link, private concern photos
 - Automated backups, AI daily cap, monitoring
-- Telegram Mini App, Google Fit / Apple Health, calendar import, Hindi/Hinglish UI
+- Google Fit / Health Connect, calendar import, Hindi/Hinglish UI

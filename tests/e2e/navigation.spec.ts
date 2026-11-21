@@ -4,9 +4,9 @@ import { expect, test, type Page } from "@playwright/test";
 const SCREENS = [
   { href: "/", label: "Today", heading: "Today", tab: true },
   { href: "/habits", label: "Habits", heading: "Habits", tab: true },
-  { href: "/activities", label: "Activities", heading: "Activities", tab: false },
+  { href: "/activities", label: "Activities", heading: "Activities", tab: true },
   { href: "/reports", label: "Reports", heading: "Reports", tab: true },
-  { href: "/phases", label: "Phases", heading: "Phases", tab: true },
+  { href: "/phases", label: "Phases", heading: "Phases", tab: false },
   { href: "/health", label: "Health", heading: "Health", tab: false },
   { href: "/settings", label: "Settings", heading: "Settings", tab: false },
   { href: "/brand", label: "Brand preview", heading: "Brand preview", tab: false },
@@ -47,7 +47,7 @@ test.describe("phone: bottom tabs at 375 px", () => {
   test.skip(({ isMobile }) => !isMobile, "phone only");
   test.use({ viewport: { width: 375, height: 812 } });
 
-  test("reaches every screen from the tabs and the More screen", async ({ page }) => {
+  test("reaches every screen from the tabs and the More sheet", async ({ page }) => {
     await page.goto("/");
     const nav = mainNav(page);
     await expect(nav).toBeVisible();
@@ -56,10 +56,10 @@ test.describe("phone: bottom tabs at 375 px", () => {
       if (screen.tab) {
         await nav.getByRole("link", { name: screen.label, exact: true }).click();
       } else {
-        await nav.getByRole("link", { name: "More", exact: true }).click();
-        await expect(heading(page, "More")).toBeVisible();
-        await page.getByRole("main").getByRole("link", { name: screen.label }).click();
-        await expect(nav.getByRole("link", { name: "More", exact: true })).toHaveAttribute(
+        await nav.getByRole("button", { name: "More", exact: true }).click();
+        await page.getByTestId("more-sheet").getByRole("link", { name: screen.label }).click();
+        await expect(page.getByRole("dialog")).toHaveCount(0);
+        await expect(nav.getByRole("button", { name: "More", exact: true })).toHaveAttribute(
           "aria-current",
           "page",
         );

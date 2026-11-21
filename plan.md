@@ -2,9 +2,9 @@
 
 > **Detailed step-by-step build phases are in [build-plan.md](build-plan.md).**
 
-A personal system to track daily habits, log "what I actually did today" (first by tapping in the app, later by messaging a bot), and get weekly/monthly reports with charts, time-allocation percentages and, later, AI suggestions.
+A personal system to track daily habits, log "what I actually did today" (first by tapping in the app, later by telling the AI in the app's Day log), and get weekly/monthly reports with charts, time-allocation percentages and, later, AI suggestions.
 
-**Core idea:** Build the plain tracker first. It works fully without AI and without a backend. Add a backend, the bot and AI later, as separate layers, only where they help.
+**Core idea:** Build the plain tracker first. It works fully without AI and without a backend. Add a backend, sync and AI later, as separate layers, only where they help.
 
 > **Plan version:** v3 (2026-11-19)
 >
@@ -24,8 +24,10 @@ A personal system to track daily habits, log "what I actually did today" (first 
 > - **Day ends at 4 AM.**
 > - **State management** decided: Zustand + TanStack Query (section 11).
 > - Fixes: metrics value types, target history for habits, scheduled habits in the unlock rule, overlap rule, definition of a "logged day".
-> - Build phases re-ordered: frontend phases first, then a new "Backend and sync" phase, then the bot and AI.
-> - Telegram webhook timeouts and scheduler choice are **deferred** until the bot phase (section 7).
+> - Build phases re-ordered: frontend phases first, then a new "Backend and sync" phase, then notifications and AI.
+> - Scheduler choice is **deferred** until the reminders phase (section 7).
+>
+> **Update 2026-11-21: no Telegram bot.** The app runs installed on my Android phone, so logging by message happens in the in-app **Day log** (AI chat) and reminders come as **phone notifications** (web push). Laptop and phone share data through Supabase sync.
 
 ---
 
@@ -36,7 +38,7 @@ A personal system to track daily habits, log "what I actually did today" (first 
 3. Group those entries under repeating headers (Travel, Exploration, Learning, Social, Entertainment...) so weekly/monthly reports can show both totals and drill-down.
 4. Show **time allocation**: "This month: 33% sleep, 12% job search, 8% entertainment..."
 5. Introduce habits in **phases** so I don't overload myself. I can enable the next phase from the app when I'm ready.
-6. Later: log by **messaging a bot** (Telegram) instead of filling forms.
+6. Later: log by **telling the AI about my day** in the in-app Day log instead of filling forms.
 7. Later: weekly/monthly AI suggestions, including for personal concerns (hair fall, dandruff, thin hair, dry skin patches).
 8. Work on web (laptop) and phone (installable PWA).
 9. Use free tiers wherever possible.
@@ -54,12 +56,12 @@ A personal system to track daily habits, log "what I actually did today" (first 
 - **Plain code first, AI second.** Checklist, streaks, charts and reports are deterministic code. AI is a parsing + coaching layer added on top later. The app must stay fully usable with AI switched off.
 - **Local-first, backend later.** Start with browser storage. All reads/writes go through one data-layer interface, so the storage can be switched to Supabase without changing screens.
 - **Brand-agnostic UI.** No hardcoded colours, names or user-facing text inside components. Everything comes from tokens and config.
-- **Every message is saved raw** (once the bot exists). Keep the original text so AI parsing can be re-run later with a better prompt.
+- **Every message is saved raw** (once the Day log exists). Keep the original text so AI parsing can be re-run later with a better prompt.
 - **AI proposes, I confirm.** New categories, unusual entries and low-confidence parses ask for a quick confirmation.
 - **Small starting set.** A checklist that is too long gets abandoned by week two. Start with ~8 habits.
 - **No guilt design.** Missing a phase target means "repeat the phase", not "failed". Rest days don't break streaks.
-- **One source of truth.** Bot, web and phone all read/write the same data (browser DB now, Postgres later).
-- **Feature flags.** Bot, AI parsing, voice and coach can each be turned on/off independently.
+- **One source of truth.** Laptop and phone all read/write the same data (browser DB now, Postgres later).
+- **Feature flags.** Notifications, AI parsing, voice and coach can each be turned on/off independently.
 
 ---
 
@@ -87,12 +89,12 @@ Note: in Stage 1, data lives in each browser separately. Laptop and phone do **n
 ### Stage 2 — Backend and integrations (Build Phase 6 onward)
 
 ```
- Me (Telegram text/voice)          Me (Web / PWA on phone)
-          |                                   |
-          v                                   v
-   Telegram Bot API  ------>  Backend API  <------  Next.js app
-                                   |          (same screens, data layer now
-                                   |           uses SupabaseRepository)
+ Me (PWA on laptop + Android phone: screens, Day log chat, mic)
+          |                          ^
+          v                          |  web push notifications
+   Next.js app  ------------>  Backend API
+   (same screens, data layer now   |
+    uses SupabaseRepository)       |
                      +-------------+--------------+
                      |                            |
                  AI parser / coach           Database (Postgres)
@@ -109,8 +111,9 @@ Note: in Stage 1, data lives in each browser separately. Laptop and phone do **n
 | Dashboard (PWA) | 1 | Checklist, today view, reports, charts, phase manager, profile/concerns, settings |
 | Theme + brand config | 1 | Colours, fonts, name, logo, copy text, presets |
 | Data layer | 1 | Repository interface; Local (IndexedDB) now, Supabase later |
-| Backend API | 2 | Auth, sync, report generation jobs, bot endpoint |
-| Telegram bot | 2 | Receives my daily message (text or voice), replies with confirmation, asks follow-ups |
+| Backend API | 2 | Auth, sync, report generation jobs, AI calls, push notifications |
+| Day log (in app) | 2 | Receives my daily message (text or voice), replies with confirmation, asks follow-ups |
+| Notifications | 2 | Web push to the installed app: nightly prompt, nudges, per-habit reminders |
 | AI parser | 2 | Turns free text into structured entries with time, duration, category |
 | AI coach | 2 | Reads weekly/monthly stats + my concerns and writes suggestions |
 | Scheduler | 2 | Nightly reminder, gap check, Sunday weekly review, month-end report, phase-readiness check |
@@ -258,7 +261,7 @@ Reports show both: e.g. "Water: 4/7 days fully done, 78% average progress".
 ## 6. Everything that can be recorded (entry types)
 
 ### 6.1 Fixed daily habits (checklist)
-Defined in the phase lists above. These are ticked by tapping (later, also auto-ticked when the bot detects them in my message, e.g. "brushed").
+Defined in the phase lists above. These are ticked by tapping (later, also auto-ticked when the AI detects them in my message, e.g. "brushed").
 
 ### 6.2 Variable activities (individual entries)
 Anything I did that day that is not a fixed habit. **Each is its own entity**, even if the category repeats many times a month. Lunch and dinner go here under "Meals and food".
@@ -270,7 +273,7 @@ Fields per entry:
 - `place` (optional), `people` (optional), `notes`
 - `mood` / `energy` (optional, 1–5)
 - `spend` (optional amount)
-- `source` (web / bot / voice) and link to the raw message (when from the bot)
+- `source` (web / day-log / voice) and link to the raw message (when from the Day log)
 - `ai_confidence` (0–1) and `confirmed` flag (used once AI exists)
 
 ### 6.3 Categories (wrappers / headers)
@@ -324,14 +327,14 @@ Category rules:
 - Monthly goals and review notes
 
 ### 6.8 Raw message log (Stage 2)
-- Every Telegram/web message stored verbatim with timestamp, so I can re-parse later and audit what the AI did.
+- Every Day log message (typed or spoken) stored verbatim with timestamp, so I can re-parse later and audit what the AI did.
 
 ---
 
-## 7. Logging by message (Telegram bot flow) — Stage 2
+## 7. Logging by message (Day log flow) — Stage 2
 
 > Built after the backend exists. **Implementation details to discuss when we reach this phase:**
-> - Serverless time limits: AI parsing can take longer than a webhook request allows (reply fast, then parse in the background or via a queue).
+> - Serverless time limits: AI parsing can take longer than a request allows (stream the reply, or parse in the background).
 > - Scheduler for the 9:30 PM reminder and nudge: free-tier cron limits differ by provider (Vercel Cron / Supabase pg_cron / GitHub Actions).
 > - Free-tier database pausing when inactive.
 
@@ -348,21 +351,16 @@ Category rules:
 7. **Reply with a confirmation**, e.g. "Logged: 3 habits ticked, 5 activities (2 h 0 m work, 30 m reels, 1 trip). Gap 2–5 PM?"
 8. **Allow corrections** by reply: "reels was 45 min not 30" or `/undo`.
 
-### Bot commands
-- `/today` — today's checklist and logged entries
-- `/summary` — quick stats for today / week / month
-- `/week`, `/month` — report links or short text summary
-- `/undo` — remove last parsed batch
-- `/habits` — view and toggle habits for today
-- `/phase` — current phase status and readiness
-- `/remind` — set or change reminder time
-- `/export` — send my data as CSV/JSON
-- `/help`
+### Quick actions (buttons in the Day log)
+- **Undo** — remove the last parsed batch
+- **Still unticked** — quick-tick chips for habits not done yet
+- Questions like "how was my week?" answered from my data
+(Today, Reports, Phases and Settings already cover the rest.)
 
 ### Nightly routine
-- At a set time (9:30 PM) the bot asks: "How was your day? Tell me what you did."
+- At a set time (9:30 PM) a notification asks: "How was your day? Tell me what you did."
 - If no reply by a later time, one gentle nudge, then it stops (no spam).
-- A "habits still unticked" quick-tick keyboard (inline buttons) as a fallback to typing.
+- Tapping it opens the Day log; "habits still unticked" chips are a fallback to typing.
 
 ### AI parsing output schema (target)
 
@@ -485,7 +483,9 @@ The same shapes are used in IndexedDB (Stage 1) and Postgres (Stage 2), so migra
 - Timestamps stored in UTC; dates stored as the "logical day" (4 AM rule) in my timezone.
 
 ```
-users(id, name, timezone, telegram_chat_id, created_at)
+users(id, name, timezone, created_at)
+
+push_subscriptions(id, user_id, endpoint, keys_json, device_label, created_at)
 
 phases(id, user_id, number, name, status[locked|active|completed|paused],
        started_at, ended_at, unlock_rule_json)
@@ -512,7 +512,7 @@ activities(id, user_id, title, category_id, subcategory, date, start_at, end_at,
 metrics(id, user_id, date, key[steps|water|weight|sleep_hours|bed_time|wake_time|mood|energy|screen_time],
         value_num, value_time)               -- numbers and times kept in separate columns
 
-raw_messages(id, user_id, channel[telegram|web|voice], text, audio_url, received_at,
+raw_messages(id, user_id, channel[text|voice], text, audio_url, received_at,
              parsed_json, parse_status, parser_version)     -- Stage 2
 
 concerns(id, user_id, title, description, severity, status, started_at, notes)
@@ -551,7 +551,7 @@ export const brand = {
   radius: "0.75rem",
   defaultTheme: "sage",
   defaultMode: "system",             // light | dark | system
-  botName: "Coach",                  // used later by the Telegram bot
+  botName: "Coach",                  // the AI's name in the Day log
   botTone: "friendly, short, no guilt",
 };
 ```
@@ -654,10 +654,11 @@ LocalRepository (Dexie)    SupabaseRepository (Stage 2)
 | Database (Stage 2) | Supabase Postgres (free tier) | Decide at Build Phase 6 |
 | Auth (Stage 2) | Supabase Auth (magic link) | |
 | Hosting | Local dev now; Vercel later | |
-| Messaging (Stage 2) | Telegram bot | Webhook vs polling decided at that phase |
+| Messaging (Stage 2) | In-app Day log (AI chat) | No Telegram (decided 2026-11-21) |
+| Notifications (Stage 2) | Web push to the installed PWA | Android; VAPID keys server-side |
 | AI (Stage 2) | **Gemini** behind a provider interface | Groq/OpenRouter/others can be swapped in |
-| Voice (Stage 2) | Telegram voice → Gemini audio; Web Speech API in PWA | |
-| Scheduler (Stage 2) | Decide at Build Phase 7 | Vercel Cron / pg_cron / GitHub Actions |
+| Voice (Stage 2) | Mic in the app → Gemini audio or Web Speech API | |
+| Scheduler (Stage 2) | Decide at Build Phase 17 | Supabase pg_cron likely; GitHub Actions / Vercel Cron |
 | Photos (Stage 2) | Supabase Storage (private) | Never sent to AI |
 
 ---
@@ -719,7 +720,7 @@ LocalRepository (Dexie)    SupabaseRepository (Stage 2)
 - Daily reflection fields
 - **Done when:** the app installs on my phone, opens offline, and concerns can be tracked.
 
-### Stage 2 — Backend, bot and AI (accounts needed)
+### Stage 2 — Backend, sync and AI (accounts needed)
 
 #### Build Phase 6 — Backend and sync
 - Create GitHub, Supabase and Vercel accounts; deploy
@@ -727,11 +728,9 @@ LocalRepository (Dexie)    SupabaseRepository (Stage 2)
 - `SupabaseRepository`, import my local JSON export
 - **Done when:** laptop and phone show the same data.
 
-#### Build Phase 7 — Telegram bot (text)
-- BotFather token, endpoint, whitelist (my chat ID only), webhook secret
-- Raw message storage, `/today`, `/undo`, inline quick-tick buttons
-- Nightly reminder (scheduler decided here)
-- **Done when:** a test message arrives and is saved.
+#### Build Phase 7 — Phone notifications (was: Telegram bot, dropped 2026-11-21)
+- Web push to the installed app, nightly reminder (scheduler decided here)
+- **Done when:** a test notification reaches my phone.
 
 #### Build Phase 8 — AI parsing
 - Gemini provider interface, prompt + Zod schema
@@ -742,19 +741,19 @@ LocalRepository (Dexie)    SupabaseRepository (Stage 2)
 - **Done when:** my sample day produces correct entries with minimal corrections.
 
 #### Build Phase 9 — Voice input
-- Telegram voice-note transcription, mic button in PWA
-- **Done when:** I can speak my day into Telegram and get it logged.
+- Mic button in the app
+- **Done when:** I can speak my day and get it logged.
 
 #### Build Phase 10 — AI coach
 - Weekly/monthly AI summaries, "next week focus", phase-readiness advice
 - Concern-aware suggestions with dermatologist disclaimer (UI + prompts)
-- Report delivery in app + short Telegram message
+- Report delivery in app + a notification
 - **Done when:** the Sunday report arrives with 3 sensible suggestions.
 
 #### Build Phase 11 — Hardening and extras (optional)
 - PDF report export, read-only share link, concern photos (private storage)
 - Automated backups, monitoring, rate limiting, AI daily cap
-- Telegram Mini App, multi-user, Google Fit / Apple Health, calendar import
+- Multi-user, Google Fit / Health Connect, calendar import
 
 ---
 
@@ -763,9 +762,9 @@ LocalRepository (Dexie)    SupabaseRepository (Stage 2)
 - **Privacy:** this is sensitive personal data (health, routines, location).
   - Stage 1: data stays in my browser. **Browser storage can be cleared**, so the app reminds me to export a backup weekly.
   - Stage 2: private Supabase project, RLS, API keys server-side only.
-- **Telegram security:** accept messages only from my chat ID; verify the webhook secret token.
+- **Notification security:** push keys server-side; notifications carry no health details, only "Open Dinik Diary"-style text.
 - **AI data:** Gemini free tier accepted (decision). Concern photos are never sent to AI.
-- **Testing:** unit tests for scoring/streak/percentage/phase logic; golden-file tests for the parser; Playwright for key flows; manual checklist for the bot.
+- **Testing:** unit tests for scoring/streak/percentage/phase logic; golden-file tests for the parser; Playwright for key flows; manual checklist for notifications.
 - **Observability:** log parse failures and low-confidence cases to improve prompts.
 - **Medical safety:** coach prompts must avoid diagnosing or prescribing; always suggest a dermatologist/doctor for persistent issues.
 - **Cost guard:** cap AI calls per day; fall back to saving the raw message if the AI quota is hit and parse later.
@@ -781,18 +780,18 @@ LocalRepository (Dexie)    SupabaseRepository (Stage 2)
 | 3 | Database | IndexedDB (Dexie) now; Supabase later |
 | 4 | Auth | None in Stage 1; Supabase Auth later |
 | 5 | AI provider | Gemini (free tier OK), behind an interface |
-| 6 | Messaging channel | Telegram (Stage 2) |
-| 7 | Telegram mode | Decide at Build Phase 7 |
-| 8 | Voice input | Telegram voice + Gemini; Web Speech API in PWA (Stage 2) |
-| 9 | Scheduler | Decide at Build Phase 7 |
-| 10 | Reminders | Telegram (Stage 2) |
+| 6 | Messaging channel | In-app Day log (Stage 2); Telegram dropped 2026-11-21 |
+| 7 | Telegram mode | Not needed (no Telegram) |
+| 8 | Voice input | Mic in the app; Gemini audio or Web Speech API (Stage 2) |
+| 9 | Scheduler | Decide at Build Phase 17 (Supabase pg_cron likely) |
+| 10 | Reminders | Phone notifications via web push (Stage 2) |
 | 11 | Charts library | Recharts |
 | 12 | Phase unlock | Auto-suggest + manual confirm |
 | 13 | Unlock threshold | 80% average progress over 14 days, ≥ 10 logged days |
 | 14 | Time-allocation base | Toggle: % of 24 h / % of waking time |
 | 15 | Photos for concerns | Yes, later (private storage, never sent to AI) |
 | 16 | Hosting | Local now; Vercel + Supabase later |
-| 17 | Report delivery | In-app; also Telegram message in Stage 2 |
+| 17 | Report delivery | In-app; plus a notification in Stage 2 |
 | 18 | Language of input | English + Hinglish |
 | 19 | Week start day | Monday |
 | 20 | Reminder time | 9:30 PM IST |
@@ -808,9 +807,10 @@ LocalRepository (Dexie)    SupabaseRepository (Stage 2)
 | 30 | "Scheduled" habits | Not a separate type: any habit can have a schedule (daily, chosen weekdays, N times a week, every N days). Decided in Build Phase 3. |
 | 32 | Habits screen layout | Phases are collapsible (closed by default, open state remembered per device). Habits are reordered by drag and drop (mouse, touch, keyboard) and can be dragged into another phase **only if that phase is unlocked**; the "Move to phase" menu follows the same rule. The habit form can still put a habit in any phase, to plan locked phases. |
 | 33 | Dashboard layout | Every laptop screen is a dashboard: 12-column grid, cards side by side, a row of 4 summary tiles on most screens. Phone: one column. See build-plan.md "Screen layout system". |
-| 34 | Navigation | Laptop: Today, Habits, Activities, Reports, Phases (+ Day log in Stage 2), then Health (was Concerns), Settings, Brand preview. Phone tabs: Today, Habits, Reports, Phases, More (Activities lives in More; Today shows "What you did today"). Day log is added to the menu only when it works (Stage 2). |
+| 34 | Navigation | Laptop: Today, Habits, Activities, Reports, Phases (+ Day log in Stage 2), then Health (was Concerns), Settings, Brand preview. Phone tabs (changed 2026-11-21 from the phone mock-ups): Today, Habits, Activities, Reports, More; More opens a bottom sheet with every screen (Phases, Health, Settings, Brand preview). Dialogs open as bottom sheets on phones. Day log is added only when it works (Stage 2). |
 | 35 | Part of day | Every habit has a part of day (Any time, Morning, Afternoon, Evening, Night) for filters and for grouping the Today checklist. |
 | 36 | Subcategories | Free text on each activity (e.g. Travel → "Local exploration"), with suggestions from earlier entries in that category. Nested categories (`parentId`) stay available for later. Decided in Build Phase 7. |
+| 38 | No Telegram | The installed phone app (Android) is the only place I log: in-app Day log for messages and voice, web push for reminders, Supabase sync for laptop + phone. Decided 2026-11-21. |
 | 37 | Health (was "Concerns") | One Health section: issues of kind pain / symptom / concern, severity 0–10, a daily check-in on Today. I only say what's wrong and how bad; a rule-based **health advisor** looks at all running habits, their targets and my history, and suggests changes with reasons (lighten, cut down a limit, a little more of what helps, pause, add a helpful habit, sick day, see a doctor) for 5 days, applied only with my approval. Reports (upload + typed key values) in Build Phase 12.5. An AI advisor (Stage 2) can replace the rules with the same kind of suggestions and read reports. Not medical advice; red flags always say "see a doctor". Decided 2026-11-21. |
 | 31 | Theme storage | Saved in settings (travels with backups) + a localStorage copy for flash-free loading. The latest choice on the device wins; restoring a backup applies its theme. |
 
@@ -823,7 +823,7 @@ LocalRepository (Dexie)    SupabaseRepository (Stage 2)
 | Checklist too long, I abandon it | Phased habits, start with 8 |
 | Browser data cleared in Stage 1 | Weekly export reminder, JSON import |
 | No laptop/phone sync in Stage 1 | Use one main device; export/import; sync arrives in Build Phase 6 |
-| AI misparses my day | Confidence threshold, Review Inbox, `/undo`, raw message kept for re-parse |
+| AI misparses my day | Confidence threshold, Review panel, Undo, raw message kept for re-parse |
 | Free AI quota runs out | Provider interface, daily cap, save raw and parse later |
 | Percentages look wrong due to gaps | Unlogged slice plus nightly gap questions |
 | Re-branding breaks UI | Tokens only, lint rule, `/brand` preview page |
@@ -852,7 +852,6 @@ All earlier questions are answered (section 15, rows 24–29). Remaining small i
 
 ## 19. Future ideas (parking lot)
 
-- Telegram Mini App dashboard inside the chat
 - Wearable/Google Fit/Apple Health import for steps and sleep
 - Calendar import for meetings and interviews
 - Gamification: badges for streaks, phase completion

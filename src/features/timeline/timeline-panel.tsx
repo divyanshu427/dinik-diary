@@ -1,6 +1,7 @@
 "use client";
 
-import { Moon, Plus, TriangleAlert } from "lucide-react";
+import { Moon, Plus, Repeat, TriangleAlert } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Panel, type Span } from "@/components/dashboard";
 import { EmptyState } from "@/components/empty-state";
@@ -17,14 +18,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { copy } from "@/copy";
 import { planOverlapFix } from "@/data/activity-ops";
-import type { Habit, HabitTarget } from "@/data/schema";
+import type { Activity, Habit, HabitTarget } from "@/data/schema";
+import { ActivityMenu, ActivityRow } from "@/features/activities/activity-row";
 import { categoryColor, formatDuration } from "@/features/activities/summary";
 import { useActivityActions } from "@/features/activities/use-activity-actions";
 import { formatClock } from "@/features/today/format";
 import { useActivities } from "@/hooks/use-activities";
 import { useCategories } from "@/hooks/use-data";
 import { useMetrics } from "@/hooks/use-metrics";
-import { MINUTES_PER_DAY, minuteToTime, targetOn, type IsoDate } from "@/lib/core";
+import { addDays, MINUTES_PER_DAY, minuteToTime, targetOn, type IsoDate } from "@/lib/core";
 import { cn } from "@/lib/utils";
 import { buildDayTimeline, type TimelineItem, type TimelineOverlap } from "./day-timeline";
 
@@ -42,7 +44,10 @@ interface TimelinePanelProps {
   span?: Span;
 }
 
-/** "Today's timeline": sleep, activities and unlogged gaps; "Fill the gap"; overlap fixes. */
+/**
+ * "Your day" on Today: sleep, activities and unlogged gaps in time order, "Fill the gap",
+ * overlap fixes, logging and editing activities, and "Repeat yesterday".
+ */
 export function TimelinePanel({
   date,
   today,
@@ -114,11 +119,23 @@ export function TimelinePanel({
   const placed = timeline.items.some((i) => i.kind !== "gap");
   const fix = toFix ? planOverlapFix(toFix.loser, toFix.winner, dayStartHour) : null;
 
+  const all = activities.data ?? [];
+  const dayCount = all.filter((a) => a.date === date).length;
+  const previous = addDays(date, -1);
+  const previousCount = all.filter((a) => a.date === previous).length;
+  const duplicate = date === today ? undefined : (a: Activity) => actions.duplicate(a, today);
+
   return (
     <Panel
       span={span}
-      title={date === today ? t.title : t.titleOther}
-      subtitle={t.subtitle(clock(0), formatDuration(timeline.placedMinutes))}
+      title={t.title}
+      subtitle={t.subtitle(clock(0), formatDuration(timeline.placedMinutes), dayCount)}
+      action={
+        <Button size="sm" aria-label={t.log} onClick={() => actions.logNew(date)}>
+          <Plus aria-hidden />
+          {t.logShort}
+        </Button>
+      }
       className="overflow-hidden"
     >
       {actions.error && (
@@ -195,7 +212,9 @@ export function TimelinePanel({
                       ? categoryById.get(item.activity.categoryId)?.name
                       : undefined
                   }
-                  onEdit={() => item.kind === "activity" && actions.edit(item.activity)}
+                  onEdit={actions.edit}
+                  onDelete={actions.askDelete}
+                  onDuplicate={duplicate}
                   onFill={() => fill(item.start, item.end)}
                   fillLabel={t.fillGapFor(clock(item.start), clock(item.end))}
                 />
@@ -203,11 +222,40 @@ export function TimelinePanel({
             </ol>
           )}
 
-          {timeline.untimed.length > 0 && (
-            <p className="text-sm text-muted-foreground">
-              {t.untimed(timeline.untimed.length)} {timeline.untimed.map((a) => a.title).join(", ")}
-            </p>
+          {dayCount === 0 && previousCount > 0 && (
+            <div>
+              <Button variant="outline" size="sm" onClick={() => actions.repeatDay(previous, date)}>
+                <Repeat aria-hidden />
+                {t.repeatYesterday(previousCount)}
+              </Button>
+            </div>
           )}
+
+          {timeline.untimed.length > 0 && (
+            <div>
+              <p className="text-sm text-muted-foreground">{t.untimed(timeline.untimed.length)}</p>
+              <ul aria-label={t.untimedLabel} className="-mx-5 mt-2 divide-y border-y">
+                {timeline.untimed.map((a) => (
+                  <ActivityRow
+                    key={a.id}
+                    compact
+                    activity={a}
+                    category={categoryById.get(a.categoryId)}
+                    onEdit={actions.edit}
+                    onDelete={actions.askDelete}
+                    onDuplicate={duplicate}
+                  />
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <Link
+            href="/activities"
+            className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+          >
+            {t.seeAll}
+          </Link>
         </div>
       )}
 
@@ -350,6 +398,8 @@ function TimelineRow({
   range,
   categoryName,
   onEdit,
+  onDelete,
+  onDuplicate,
   onFill,
   fillLabel,
 }: {
@@ -357,7 +407,9 @@ function TimelineRow({
   color: string | undefined;
   range: string;
   categoryName?: string;
-  onEdit: () => void;
+  onEdit: (a: Activity) => void;
+  onDelete: (a: Activity) => void;
+  onDuplicate?: (a: Activity) => void;
   onFill: () => void;
   fillLabel: string;
 }) {
@@ -414,6 +466,7 @@ function TimelineRow({
     <li
       data-timeline={item.kind}
       data-title={title}
+      data-activity={isSleep ? undefined : title}
       className="flex flex-wrap items-center gap-x-3 gap-y-1 px-5 py-2.5 sm:flex-nowrap"
     >
       {timeCol}
@@ -423,7 +476,7 @@ function TimelineRow({
       ) : (
         <button
           type="button"
-          onClick={onEdit}
+          onClick={() => onEdit(item.activity)}
           className="min-w-0 flex-1 rounded-md text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           {body}
@@ -432,6 +485,14 @@ function TimelineRow({
       <span className="shrink-0 text-sm text-muted-foreground tabular-nums">
         {formatDuration(minutes)}
       </span>
+      {!isSleep && (
+        <ActivityMenu
+          activity={item.activity}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onDuplicate={onDuplicate}
+        />
+      )}
     </li>
   );
 }

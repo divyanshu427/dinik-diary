@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, MessageSquarePlus, Minus, Plus } from "lucide-react";
+import { Check, ChevronDown, MessageSquarePlus, Minus, Plus } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,24 +42,39 @@ export const GROUP_ORDER: readonly PartOfDay[] = [
   "night",
 ];
 
-/** One part-of-day group: "Morning 3/5" and its rows. */
+/**
+ * One part-of-day group: "Morning 3/5" and its rows. Tap the header to fold it.
+ * Evening and night start folded on today until their time comes (nothing to do there yet).
+ */
 export function CheckGroup({
   part,
   rows,
   ...actions
 }: { part: PartOfDay; rows: CheckRowModel[] } & RowActions) {
   const done = rows.filter((r) => r.score.done).length;
+  const [open, setOpen] = useState(() => !rows.every((r) => r.later));
   const id = `group-${part}`;
   return (
-    <section aria-labelledby={id}>
-      <h3
-        id={id}
-        className="flex items-center justify-between border-b bg-muted/50 px-4 py-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
-      >
-        <span>{t.groups[part]}</span>
-        <span className="tabular-nums">{t.groupCount(done, rows.length)}</span>
+    <section aria-labelledby={id} data-group={part}>
+      <h3 id={id} className="border-b bg-muted/50">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={`${id}-list`}
+          onClick={() => setOpen((o) => !o)}
+          className="flex w-full items-center justify-between gap-2 px-4 py-2.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase outline-none focus-visible:bg-muted"
+        >
+          <span>{t.groups[part]}</span>
+          <span className="flex items-center gap-2">
+            <span className="tabular-nums">{t.groupCount(done, rows.length)}</span>
+            <ChevronDown
+              aria-hidden
+              className={cn("size-4 transition-transform", !open && "-rotate-90")}
+            />
+          </span>
+        </button>
       </h3>
-      <ul className="divide-y">
+      <ul id={`${id}-list`} hidden={!open} className="divide-y">
         {rows.map((row) => (
           <CheckRow key={row.habit.id} row={row} {...actions} />
         ))}
@@ -78,6 +93,8 @@ function CheckRow({
   const { habit, log, score, target } = row;
   const partial = !score.done && score.progress > 0;
   const keepTime = log?.time ?? nowTime;
+  // Amounts (steps, minutes, glasses…) with a target get a thin progress bar.
+  const amount = habit.type !== "boolean" && habit.type !== "time" && target?.targetValue != null;
 
   // Amounts show their target in the controls; time habits show "By 07:30" here.
   const subline = [
@@ -86,6 +103,7 @@ function CheckRow({
     row.streak && row.streak.current >= 2
       ? t.streakBadge(row.streak.current, row.streak.unit)
       : null,
+    habit.metricKey && habit.type !== "time" ? t.fromNumbers : null,
     log?.note ? `“${log.note}”` : null,
   ]
     .filter(Boolean)
@@ -104,7 +122,7 @@ function CheckRow({
           aria-label={habit.name}
           onClick={() => onLog(habit, score.done ? null : { value: 1, time: nowTime })}
           className={cn(
-            "flex size-7 shrink-0 items-center justify-center rounded-lg border-2 transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+            "flex size-7 shrink-0 items-center justify-center rounded-full border-2 transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
             score.done
               ? "border-primary bg-primary text-primary-foreground"
               : "border-input hover:border-primary",
@@ -113,7 +131,7 @@ function CheckRow({
           {score.done && <Check aria-hidden className="size-4" strokeWidth={3} />}
         </button>
       ) : (
-        <StatusDot done={score.done} partial={partial} />
+        <StatusDot done={score.done} partial={partial} progress={score.progress} />
       )}
 
       <div className="min-w-[10rem] flex-1">
@@ -121,6 +139,14 @@ function CheckRow({
           {habit.name}
         </p>
         {subline && <p className="text-sm text-muted-foreground">{subline}</p>}
+        {amount && (
+          <div aria-hidden className="mt-1.5 h-1.5 max-w-60 overflow-hidden rounded-full bg-muted">
+            <div
+              className={cn("h-full rounded-full", score.done ? "bg-primary" : "bg-primary/60")}
+              style={{ width: `${Math.min(100, score.progress)}%` }}
+            />
+          </div>
+        )}
       </div>
 
       {/* Rows with controls wrap them onto their own line on phones; plain ticks keep their time beside the name. */}
@@ -203,21 +229,43 @@ function Meta({ row, dayStartHour }: { row: CheckRowModel; dayStartHour: number 
   );
 }
 
-function StatusDot({ done, partial }: { done: boolean; partial: boolean }) {
+/** Done (filled), partly done (a ring filled to the progress), or not yet (empty circle). */
+function StatusDot({
+  done,
+  partial,
+  progress,
+}: {
+  done: boolean;
+  partial: boolean;
+  progress: number;
+}) {
   const label = done ? t.status.done : partial ? t.status.partial : t.status.notDone;
+  const r = 11;
+  const c = 2 * Math.PI * r;
   return (
     <span
       role="img"
       aria-label={label}
       className={cn(
-        "flex size-7 shrink-0 items-center justify-center rounded-full border-2",
-        done && "border-primary bg-primary text-primary-foreground",
-        partial && "border-warning",
-        !done && !partial && "border-input",
+        "relative flex size-7 shrink-0 items-center justify-center rounded-full",
+        done ? "bg-primary text-primary-foreground" : "border-2 border-input",
       )}
     >
       {done && <Check aria-hidden className="size-4" strokeWidth={3} />}
-      {partial && <span aria-hidden className="size-2.5 rounded-full bg-warning" />}
+      {partial && (
+        <svg aria-hidden viewBox="0 0 28 28" className="absolute -inset-0.5 size-7 -rotate-90">
+          <circle
+            cx="14"
+            cy="14"
+            r={r}
+            fill="none"
+            strokeWidth="3"
+            strokeLinecap="round"
+            className="stroke-warning"
+            strokeDasharray={`${(Math.min(100, progress) / 100) * c} ${c}`}
+          />
+        </svg>
+      )}
     </span>
   );
 }
