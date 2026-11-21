@@ -73,7 +73,6 @@ export function ReportsScreen() {
 
   const header = (eyebrow?: string) => (
     <PageHeader
-      phoneBack={{ href: "/more", label: copy.pages.more.back }}
       eyebrow={eyebrow}
       title={r.title}
       subtitle={r.subtitle}

@@ -66,6 +66,8 @@ test.describe("phone: bottom tabs at 375 px", () => {
       }
       await expect(page).toHaveURL(screen.href);
       await expect(heading(page, screen.heading)).toBeVisible();
+      // The same logo row sits above every page.
+      await expect(page.getByRole("main").getByRole("link", { name: /Dinik Diary/ })).toBeVisible();
       await expectNoHorizontalScroll(page);
     }
   });

@@ -118,7 +118,6 @@ export function HealthScreen() {
   return (
     <>
       <PageHeader
-        phoneBack={{ href: "/more", label: copy.pages.more.back }}
         eyebrow={t.eyebrow(active.length, checkedInToday)}
         title={t.title}
         subtitle={t.subtitle}

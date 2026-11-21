@@ -1381,7 +1381,6 @@ export const en = {
       title: "More",
       subtitle: "Everything else in Dinik Diary.",
       tabHint: "Tab",
-      back: "More",
     },
     brand: {
       phase: 1,

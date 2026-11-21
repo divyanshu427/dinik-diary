@@ -140,7 +140,6 @@ export function PhasesScreen() {
   return (
     <>
       <PageHeader
-        phoneBack={{ href: "/more", label: copy.pages.more.back }}
         eyebrow={eyebrow}
         title={t.title}
         subtitle={t.subtitle}

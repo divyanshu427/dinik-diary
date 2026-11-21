@@ -2,13 +2,14 @@ import type { ReactNode } from "react";
 import { copy } from "@/copy";
 import { PwaRegister } from "@/components/pwa";
 import { BottomTabs } from "./bottom-tabs";
+import { PhoneBrand } from "./phone-brand";
 import { DemoBanner } from "./demo-banner";
 import { Sidebar } from "./sidebar";
 
 /**
  * The frame around every screen:
  * - md and up: fixed sidebar on the left
- * - below md: fixed tab bar at the bottom
+ * - below md: the logo row above every page, and a fixed tab bar at the bottom
  */
 export function AppShell({ children }: { children: ReactNode }) {
   return (
@@ -27,6 +28,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           tabIndex={-1}
           className="mx-auto w-full max-w-[1600px] flex-1 px-4 pt-6 pb-28 outline-none sm:px-6 md:pt-8 md:pb-10 lg:px-8"
         >
+          <PhoneBrand />
           {children}
         </main>
       </div>

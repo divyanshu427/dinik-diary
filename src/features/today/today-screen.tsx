@@ -3,7 +3,6 @@
 import { Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { PhoneBrand } from "@/components/app-shell/phone-brand";
 import { Cell, Dashboard, Panel } from "@/components/dashboard";
 import { PageHeader } from "@/components/page-header";
 import { ProgressRing } from "@/components/progress-ring";
@@ -291,15 +290,18 @@ export function TodayScreen() {
 
   return (
     <>
-      <PhoneBrand>
-        {activePhases.map((p) => (
-          <Badge key={p.id} variant="secondary" className="h-7 max-w-full truncate px-3">
-            {phaseLabel(p)}
-          </Badge>
-        ))}
-      </PhoneBrand>
       <PageHeader
-        eyebrow={formatLongDate(date)}
+        eyebrow={
+          // Phones: the current phase sits under the date. Laptop: beside the date controls.
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+            {formatLongDate(date)}
+            {activePhases.map((p) => (
+              <Badge key={p.id} variant="secondary" className="max-w-full truncate md:hidden">
+                {phaseLabel(p)}
+              </Badge>
+            ))}
+          </span>
+        }
         title={dayTitle(date, today!, { today: t.title, yesterday: t.yesterday })}
         inlineActions
         actions={

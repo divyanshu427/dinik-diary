@@ -2,7 +2,10 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { brand } from "@/brand/brand.config";
 
-/** Phones only: the app's logo and name above the page title, with optional chips on the right. */
+/**
+ * Phones only: the app's logo and name above every page's title (added once, by the app frame).
+ * The right-hand slot is for the page help button.
+ */
 export function PhoneBrand({ children }: { children?: ReactNode }) {
   return (
     <div className="mb-4 flex items-center justify-between gap-3 md:hidden">

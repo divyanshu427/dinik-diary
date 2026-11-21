@@ -29,7 +29,6 @@ import {
 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { ActionMenu, type ActionItem } from "@/components/action-menu";
-import { PhoneBrand } from "@/components/app-shell/phone-brand";
 import { Cell, Dashboard } from "@/components/dashboard";
 import { PageHeader } from "@/components/page-header";
 import { StatTile } from "@/components/stat-tile";
@@ -484,7 +483,6 @@ export function HabitsScreen() {
 
   return (
     <>
-      <PhoneBrand />
       <PageHeader
         eyebrow={loaded ? t.headerSummary(activeHabits.length, waiting) : undefined}
         title={t.title}
