@@ -23,6 +23,9 @@ let userId: string | null = null;
 let onChanged: () => void = () => undefined;
 let timer: ReturnType<typeof setTimeout> | null = null;
 let running = false;
+/** The device is connected to the account (first sign-in finished). Syncs wait for this. */
+let ready = false;
+let connecting = false;
 let again = false;
 let stopLive: (() => void) | null = null;
 
@@ -53,9 +56,12 @@ function failed(e: unknown) {
 }
 
 async function run() {
+  if (!ready) {
+    // Not connected yet: a first sign-in that failed (offline, or an error) tries again.
+    if (!connecting && store().status !== "choose") void retryConnect();
+    return;
+  }
   if (!engine || !userId) return;
-  const status = store().status;
-  if (status === "choose" || status === "checking") return;
   if (running) {
     again = true;
     return;
@@ -87,7 +93,6 @@ async function run() {
 
 /** Sync soon (several calls in a row make one sync). */
 export function schedule(delay = AFTER_CHANGE_MS) {
-  if (!engine) return;
   if (timer) clearTimeout(timer);
   timer = setTimeout(() => {
     timer = null;
@@ -117,12 +122,15 @@ async function connect(session: Session | null) {
     stopLive?.();
     engine = null;
     userId = null;
+    ready = false;
     store().set({ status: "signed-out", email: null, error: null });
     return;
   }
-  if (session.user.id === userId) return;
+  if (session.user.id === userId && (ready || connecting)) return;
   userId = session.user.id;
   const uid = userId;
+  ready = false;
+  connecting = true;
   store().set({ status: "checking", email: session.user.email ?? null, error: null });
   engine = createSyncEngine({ db: getLocalDb(), remote: createSupabaseRemote(getSupabase(), uid) });
   try {
@@ -136,14 +144,22 @@ async function connect(session: Session | null) {
       const result = await withLock(() => engine!.link(uid, plan));
       if (result.changed) onChanged();
     }
+    ready = true;
     store().set({ status: "synced", lastSyncedAt: new Date().toISOString() });
     listenLive(uid);
     schedule(0);
   } catch (e) {
+    // Shows the real reason; the next sync (a minute, back online, "Try again") retries.
     failed(e);
-    // Try again later (a first sign-in that failed offline finishes when back online).
-    if (store().status === "offline") userId = null;
+  } finally {
+    connecting = false;
   }
+}
+
+async function retryConnect() {
+  const { data } = await getSupabase().auth.getSession();
+  if (data.session && data.session.user.id === userId) userId = null; // force a fresh try
+  await connect(data.session);
 }
 
 /** Starts sync for this page. Returns a function that stops it. */
@@ -174,10 +190,8 @@ export function startSync(changed: () => void): () => void {
     }
   };
   Dexie.on("storagemutated", onMutated);
-  const onOnline = () => {
-    if (!userId) void client.auth.getSession().then(({ data }) => connect(data.session));
-    schedule(0);
-  };
+  // Back online: sync (or finish connecting, if that's what was waiting).
+  const onOnline = () => schedule(0);
   const onOffline = () => {
     if (engine) store().set({ status: "offline" });
   };
@@ -200,6 +214,7 @@ export function startSync(changed: () => void): () => void {
     stopLive?.();
     engine = null;
     userId = null;
+    ready = false;
   };
 }
 
@@ -222,6 +237,7 @@ export async function chooseData(mode: Extract<LinkMode, "take" | "keep-device">
   try {
     const result = await withLock(() => engine!.link(uid, mode));
     if (result.changed) onChanged();
+    ready = true;
     store().set({ status: "synced", lastSyncedAt: new Date().toISOString() });
     listenLive(uid);
   } catch (e) {
@@ -244,6 +260,7 @@ export async function signOut(mode: "keep" | "remove") {
   // Stop syncing first, so removing the data here doesn't delete it in the account.
   engine = null;
   userId = null;
+  ready = false;
   stopLive?.();
   if (timer) clearTimeout(timer);
   await getSupabase().auth.signOut({ scope: "local" });
