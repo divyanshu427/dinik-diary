@@ -41,7 +41,7 @@ Everything you enter feeds **Reports**: where your time went, how consistent you
 | One logo row + ⓘ page tours on every page | Done |
 | Water goal moved into Phase 1 | Done |
 | Choose which habits to start, and when (first run and each phase) | Done |
-| Sync between laptop and phone | Not built (planned) |
+| Sign in and sync between laptop and phone (Supabase) | Done (Phase 15) |
 | AI features (health advisor, day log chat, voice) | Not built (planned) |
 | Phone notifications and reminders | Not built (planned) |
 
@@ -336,6 +336,7 @@ Sleep and rest · Meals and food · Work and job search · Travel and exploratio
 
 | Card | What it does |
 |---|---|
+| **Account and sync** | Sign in with your email (a **Sign in** link arrives by email). Then shows **Synced · just now**, **Offline** or **Sync failed**, with **Sync now** and **Sign out** (keep the data here, or remove it from this device). The first time, if this device and the account both have data, it asks **which to keep**. See section 10b. |
 | **Appearance** | Theme (**Sage** is the default, **Mono** is the other) and **Light / Dark / System** |
 | **Back up and restore** | **Download backup**, **Restore** from a file (replaces what's on this device), **Reset to starter data**. Shows the last backup and a **Remind me every N days** choice. |
 | **Your data** | A count of what's stored (habits, phases, check-ins…) and the starter data |
@@ -344,7 +345,7 @@ Sleep and rest · Meals and food · Work and job search · Travel and exploratio
 | **Install the app** | Add Dinik Diary to the home screen so it opens like an app, even offline |
 | **Phase unlock rule** | The target %, the window in days, and the minimum logged days |
 
-**Tour:** ⓘ → 6 steps.
+**Tour:** ⓘ → 7 steps.
 
 ---
 
@@ -408,20 +409,45 @@ Lunch and dinner are **not** habits. You log them as activities under "Meals and
 
 ## 10. Your data, privacy and offline use
 
-- **Stored on your device** in the browser's database (IndexedDB). There is no account and no server holding your data.
+- **Stored on your device first** in the browser's database (IndexedDB), so the app is fast and works offline. **Signing in** (Settings → Account and sync) also keeps a copy in your private Supabase account and syncs it to your other devices (section 10b). Without signing in, nothing leaves the device.
 - **Two databases:** yours, and a separate **demo** one. Switching is in Settings.
 - **Backup file** contains everything: habits, phases, check-ins, activities, metrics, health issues and reports (with their photos and PDFs). Older backups still restore.
-- **Clearing browser data deletes everything**, so back up now and then. The app reminds you after a set number of days (default 7).
+- **Clearing browser data deletes this device's copy.** If you're signed in, sign in again and it all comes back; if not, it's gone, so back up now and then. The app reminds you after a set number of days (default 7).
 - **Offline:** after the first visit every page opens without internet.
 - **Installing:** Android Chrome → ⋮ → **Install app**; iPhone Safari → Share → **Add to Home Screen**.
-- **Different devices don't share data yet.** Laptop and phone each have their own copy until sync is built.
+- **Different devices share data only when signed in** with the same email.
 - **Updates:** when new code is pushed to GitHub, the live app updates in 1–3 minutes and reaches an installed app the next time it's opened (sometimes after reopening it once more).
+
+---
+
+## 10b. Sign in and sync (Build Phase 15)
+
+**Setting it up (done once, 2026-11-28):** a free Supabase project (Mumbai region). Its table and access rules are in `supabase/schema.sql` (run in Supabase's SQL Editor; safe to run again). The app reads two public values, `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`, from `.env.local` on the laptop (never committed) and from Vercel's Environment Variables (type **Config**). Without them the app works as before, on the device only. The Supabase **secret / service_role key and database password are never used** by the app and must never be put in the project.
+
+**Signing in:** Settings → Account and sync → your email → **Send sign-in email** → tap **Sign in** in the email. No password. Free Supabase sends only a few sign-in emails per hour, and its email template can't be changed without your own email server, so the email is Supabase's standard "Your sign-in link".
+
+**What syncs:** everything: phases, habits, targets, check-ins, day types, activities, categories, numbers, health issues and check-ins, reports and their values, settings (including the theme). Report photos and PDFs go to private file storage. The demo profile never syncs.
+
+**When it syncs:** about 1.5 seconds after a change; immediately when another device changes something (live); when the app comes back online or to the front; and once a minute.
+
+**How it stays consistent**
+- Every change is saved on the device first. Each sync compares every record with its fingerprint from the last sync, so nothing is missed (bulk edits, restoring a backup, resetting, or the app closing mid-sync).
+- **The newer edit wins**, on the device and in the cloud (the cloud refuses an older edit).
+- **Deletes reach every device.** Deleting a habit also deletes its targets and check-ins everywhere, even ones another device logged in the meantime.
+- **An edit beats a delete it didn't know about:** if one device deletes something while the other edits it, the edit survives (nothing is lost unseen).
+- **Both devices log the same habit (or number) on the same day offline:** they settle on one entry, the newer. Two new habits with the same name keep both; the older gets a slightly different internal key.
+- **First sign-in on a device:** if the account is empty, this device's data goes up. If this device has only the starter data, it takes the account's data. If both have real data, it asks: **Use my account's data** or **Use this device's data** (with a backup button first). Two sets of data are never mixed.
+- **Restoring a backup or resetting while signed in** changes the account and every device too (Settings says so).
+- **Sign out → keep data here:** signing in again later just carries on. **Sign out → remove data here:** this device goes back to the starter data; the account keeps everything.
+- **Privacy:** row level security in the database means each person only ever reads or writes their own records; anonymous visitors get nothing.
+
+**Code:** `src/data/sync/` (engine, table rules, fingerprints, the Supabase and in-memory clouds), `src/features/sync/` (the background runner), `src/features/settings/account-section.tsx` (the card), `src/stores/sync-store.ts` (status). The local database gained two bookkeeping tables in version 9 (not part of backups).
 
 ---
 
 ## 11. Technology and project layout
 
-**Built with:** Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4 and shadcn/ui, Dexie 4 (IndexedDB), Zod 4, TanStack Query, Zustand, Recharts, dnd-kit, Vitest and Playwright. Hosted on Vercel; code on GitHub.
+**Built with:** Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4 and shadcn/ui, Dexie 4 (IndexedDB), Zod 4, TanStack Query, Zustand, Recharts, dnd-kit, Vitest and Playwright. Supabase (Postgres, Auth, Storage) for sign-in and sync. Hosted on Vercel; code on GitHub.
 
 **Folders**
 ```
@@ -431,6 +457,8 @@ src/components/   shared parts: app shell, dashboard cards, action menus, the to
 src/lib/core/     the rules, as plain tested functions (scoring, streaks, readiness,
                   reports, insights, health advisor, lab values…)
 src/data/         the database layer, data operations, backups, starter data, demo data
+src/data/sync/    sync with Supabase (engine, rules, tests)
+supabase/         the cloud table and access rules (schema.sql)
 src/copy/en.ts    all text shown in the app (wording changes happen here)
 src/brand/        app name, logo, icon colours
 src/theme/        colour themes (Sage, Mono)
@@ -443,8 +471,8 @@ tests/e2e/        end-to-end tests (laptop and phone sizes)
 
 ## 12. Tests
 
-- **365 unit tests** cover the rules (scoring, streaks, readiness, reports, health advisor, database upgrades, backups).
-- **156 end-to-end tests** click through the real app on a laptop-sized and a phone-sized screen (19 more are skipped on purpose because they only make sense on one of the two sizes). A setup step answers the first-run question once ("Start all"); every other test starts from that saved state.
+- **384 unit tests** cover the rules (scoring, streaks, readiness, reports, health advisor, database upgrades, backups) and sync (two and three devices sharing one in-memory cloud: edits, conflicts, deletes, offline, first sign-in, backups, report files).
+- **160 end-to-end tests** click through the real app on a laptop-sized and a phone-sized screen (19 more are skipped on purpose because they only make sense on one of the two sizes). A setup step answers the first-run question once ("Start all"); every other test starts from that saved state. Sign-in tests never send a real email.
 - Lint, formatting and type checks run clean.
 
 ---
@@ -458,6 +486,7 @@ tests/e2e/        end-to-end tests (laptop and phone sizes)
 - **Water goal (3 L)** now starts in Phase 1; existing devices got it moved by a one-time database upgrade.
 - **Habits can only be moved into unlocked phases.**
 - **One logo row** on every phone page; no "‹ More" links (the bottom bar's More does that job).
+- **Sync keeps the device first (2026-11-28):** data is saved on the device and synced in the background, instead of reading straight from the cloud, so the app stays fast and works offline. One generic cloud table holds every kind of record.
 - **Start habits a few at a time:** a first-run picker for Phase 1 and a picker when enabling each phase; habits have a start date and earlier days never count (2026-11-22).
 
 ---
@@ -473,9 +502,9 @@ tests/e2e/        end-to-end tests (laptop and phone sizes)
 - A **Send feedback** link in Settings for testers.
 
 **Bigger steps (from build-plan.md)**
-1. ★ **Use it for 14 days** and fix what annoys you.
+1. ★ **Use it for 14 days** (now signed in, so the data is safe) and fix what annoys you.
 2. **Phase 14.5, AI health advisor:** describe what's wrong in your own words; the AI suggests the plan using the same screens and the same safety rules.
-3. **Phase 15, Supabase sync:** the same data on laptop and phone, with login.
+3. ~~Phase 15, Supabase sync~~ **done** (section 10b).
 4. **Phase 16, phone notifications** (web push on the installed app).
 5. **Phase 17, reminders and scheduler:** 9:30 PM "How was your day?", per-habit reminders.
 6. **Phases 18–19, Day log:** tell the AI about your day in the app; it ticks habits and adds activities, and you review what it understood.
@@ -489,6 +518,7 @@ tests/e2e/        end-to-end tests (laptop and phone sizes)
 
 - A browser extension (for example one that adds `jf-ext-…` attributes to buttons) can make the browser console show a "hydration mismatch" warning. It is not an app bug; open the site in a private window to confirm.
 - The Settings page's backup card can show the same kind of hydration warning in development, from the "last backup" line. It fixes itself and nothing looks wrong.
+- Free Supabase projects **pause after a week with no use**. Daily use keeps it awake; if it ever pauses, open supabase.com and press **Restore** (the data is kept).
 - Testers each get their own data; there is no way yet for you to see how they use the app. A feedback link is planned.
 
 ---

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Dashboard, Panel } from "@/components/dashboard";
 import { PageHeader } from "@/components/page-header";
 import { copy } from "@/copy";
+import { AccountSection } from "@/features/settings/account-section";
 import { BackupSection } from "@/features/settings/backup-section";
 import { DataSummary } from "@/features/settings/data-summary";
 import { DemoSection } from "@/features/settings/demo-section";
@@ -19,6 +20,14 @@ export default function SettingsPage() {
     <>
       <PageHeader title={p.title} subtitle={p.subtitle} />
       <Dashboard>
+        <Panel
+          span={12}
+          tour="settings-account"
+          title={copy.pages.account.title}
+          subtitle={copy.pages.account.hint}
+        >
+          <AccountSection />
+        </Panel>
         <Panel span={7} tour="settings-appearance" title={p.appearance} subtitle={p.appearanceHint}>
           <ThemeControls />
         </Panel>

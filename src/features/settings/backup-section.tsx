@@ -18,6 +18,7 @@ import { copy } from "@/copy";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { parseBackup, type BackupFile } from "@/data/backup";
 import { useImportBackup, useResetData, useSettings, useUpdateSettings } from "@/hooks/use-data";
+import { useSyncStore } from "@/stores/sync-store";
 import { useDownloadBackup } from "./use-download-backup";
 
 const t = copy.pages.backup;
@@ -39,6 +40,7 @@ export function BackupSection() {
   const reset = useResetData();
   const applyThemeFromSettings = useApplyThemeFromSettings();
   const busy = backup.isPending || importBackup.isPending || reset.isPending;
+  const signedIn = useSyncStore((s) => s.email !== null);
 
   const fail = (e: unknown) =>
     setStatus({ kind: "error", text: t.failed(e instanceof Error ? e.message : String(e)) });
@@ -111,6 +113,8 @@ export function BackupSection() {
           onChange={onFileChosen}
         />
       </div>
+
+      {signedIn && <p className="text-sm text-muted-foreground">{t.syncedNote}</p>}
 
       {settings && (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">

@@ -259,6 +259,11 @@ export const en = {
       ],
       settings: [
         {
+          target: "settings-account",
+          title: "Sign in to sync",
+          body: "Keeps your data safe online and the same on your phone and laptop. Without it, everything stays on this device.",
+        },
+        {
           target: "settings-appearance",
           title: "Make it yours",
           body: "Colours and light or dark mode.",
@@ -276,7 +281,7 @@ export const en = {
         {
           target: "settings-backup",
           title: "Back up your data",
-          body: "Everything lives on this device. Download a backup now and then; restoring one replaces what's here.",
+          body: "Download a backup now and then, even when you're signed in. Restoring one replaces what's here.",
         },
         {
           target: "settings-demo",
@@ -1719,6 +1724,63 @@ export const en = {
       resetConfirm: "Delete and reset",
       resetDone: "Starter data loaded.",
       cancel: "Cancel",
+      failed: (message: string) => `Something went wrong: ${message}`,
+      /** Under the buttons while signed in. */
+      syncedNote:
+        "You're signed in, so restoring a backup or resetting also changes your account and your other devices.",
+    },
+    account: {
+      title: "Account and sync",
+      hint: "Sign in to keep your data safe online and the same on your phone and laptop.",
+      demoHint: "Sync is off while the demo is open. Go back to your own data to sign in.",
+      offHint: "Sync isn't set up in this version of the app, so your data stays on this device.",
+      why: [
+        "Your data comes back if this phone is lost or its browser data is cleared.",
+        "Phone and laptop show the same data, a few seconds apart.",
+        "Works offline: changes wait here and go up when you're back online.",
+        "Only you can see your data.",
+      ],
+      emailLabel: "Email",
+      emailPlaceholder: "you@example.com",
+      send: "Send sign-in email",
+      sending: "Sending…",
+      sent: (email: string) =>
+        `Check ${email} (and the spam folder). Tap "Sign in" in the email and you'll come back here signed in.`,
+      resend: "Send again",
+      otherEmail: "Use a different email",
+      signedInAs: (email: string) => `Signed in as ${email}`,
+      status: {
+        checking: "Connecting…",
+        syncing: "Syncing…",
+        synced: (when: string) => `Synced · ${when}`,
+        offline: "Offline. Changes are saved here and sync when you're back online.",
+        error: (message: string) => `Sync failed: ${message}`,
+      },
+      justNow: "just now",
+      minutesAgo: (n: number) => (n === 1 ? "1 minute ago" : `${n} minutes ago`),
+      at: (time: string) => `at ${time}`,
+      skipped: (n: number) =>
+        `${n} ${n === 1 ? "item" : "items"} from another device couldn't be read. Open the app on every device so they all update.`,
+      syncNow: "Sync now",
+      tryAgain: "Try again",
+      signOut: "Sign out",
+      signOutTitle: "Sign out on this device?",
+      signOutBody: "Your account keeps all your data. Choose whether this device keeps a copy too.",
+      signOutKeep: "Sign out, keep data here",
+      signOutRemove: "Sign out and remove data here",
+      choose: {
+        title: "Which data do you want to keep?",
+        body: "This device and your account both have data, and they can't be mixed. The one you don't pick is replaced. Download a backup first if you're not sure.",
+        take: "Use my account's data",
+        takeHint: "This device gets the data from your account.",
+        keep: "Use this device's data",
+        keepHint: "Your account and other devices get this device's data.",
+        backup: "Download a backup of this device",
+        confirmKeepTitle: "Replace your account's data?",
+        confirmKeepBody:
+          "Everything in your account, and on your other devices, is replaced by this device's data.",
+        confirmKeep: "Replace account data",
+      },
       failed: (message: string) => `Something went wrong: ${message}`,
     },
     more: {

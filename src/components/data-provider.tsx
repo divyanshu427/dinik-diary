@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Settings } from "@/data/schema";
+import { SyncRunner } from "@/features/sync/sync-runner";
 import { useSettings, useUpdateSettings } from "@/hooks/use-data";
 import { getPreset } from "@/theme/presets";
 import { hasStoredPreference, useTheme } from "@/theme/use-theme";
@@ -27,6 +28,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeSync />
+      <SyncRunner />
       {children}
     </QueryClientProvider>
   );

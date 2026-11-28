@@ -460,9 +460,10 @@ Moved up from the AI coach (decided 2026-11-21): the AI needs the server part fr
 - Falls back to the rule-based advisor when offline, over the free limit, or AI is switched off; health data is sent only with my permission
 - **Done when:** I write "lower back hurts since the gym" and get a sensible, explained plan I can approve.
 
-## Build Phase 15 — Supabase and sync
-- Supabase project, Postgres tables, RLS, magic-link auth
-- `SupabaseRepository` with the same interfaces; import my JSON backup
+## Build Phase 15 — Supabase and sync ✅
+- Supabase project (Mumbai), one generic `records` table + RLS + a last-write-wins trigger, private `report-files` storage (`supabase/schema.sql`), magic-link sign-in
+- Changed from the original plan: no `SupabaseRepository`. The device database stays the store (fast, offline) and a sync engine (`src/data/sync/`) keeps it in step with the cloud: fingerprints per record, newer edit wins, delete markers with cascade, duplicate-day logs settle on one, first sign-in uploads / takes / asks which to keep. The JSON backup is no longer needed to move data: signing in uploads it.
+- Settings → Account and sync card; sync runs after changes, live, on reconnect and every minute
 - **Done when:** laptop and phone show the same data.
 
 ## Build Phase 16 — Phone notifications

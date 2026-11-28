@@ -1,4 +1,5 @@
 import { parsePreference, THEME_STORAGE_KEY } from "@/theme/preference";
+import { DinikDb } from "./local/db";
 import { createLocalDataStore } from "./local/local-store";
 import { dbNameFor, readProfile } from "./profile";
 import type { DataStore } from "./repositories";
@@ -9,6 +10,16 @@ import type { DataStore } from "./repositories";
  */
 
 let store: DataStore | null = null;
+let localDb: DinikDb | null = null;
+
+/** The browser database behind the store (sync reads and writes it directly). */
+export function getLocalDb(): DinikDb {
+  if (typeof window === "undefined") {
+    throw new Error("The local database only runs in the browser.");
+  }
+  localDb ??= new DinikDb(dbNameFor(readProfile()));
+  return localDb;
+}
 
 export function getDataStore(): DataStore {
   if (typeof window === "undefined") {
@@ -16,7 +27,7 @@ export function getDataStore(): DataStore {
   }
   store ??= createLocalDataStore({
     // Your own data, or the demo profile's separate database.
-    dbName: dbNameFor(readProfile()),
+    db: getLocalDb(),
     getTheme: () => {
       try {
         const pref = parsePreference(window.localStorage.getItem(THEME_STORAGE_KEY));

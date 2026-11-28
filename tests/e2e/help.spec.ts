@@ -9,7 +9,7 @@ const PAGES = [
   ["/phases", "phases-current", "Your current phase"],
   ["/health", "health-add", "Two parts"],
   ["/health/reports", "hr-add", "Reports and values"],
-  ["/settings", "settings-appearance", "Make it yours"],
+  ["/settings", "settings-account", "Sign in to sync"],
 ] as const;
 
 test.describe("page help (the ⓘ button)", () => {

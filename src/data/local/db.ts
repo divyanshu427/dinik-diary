@@ -44,6 +44,31 @@ export const STORES_V5 = {
   labValues: "id, name, date, reportId",
 } as const;
 
+/** Version 9 adds sync bookkeeping (Build Phase 15). Not part of backups or counts. */
+export const STORES_V9 = {
+  ...STORES_V5,
+  syncMeta: "[tbl+id], tbl",
+  syncState: "key",
+} as const;
+
+/**
+ * What the last sync knew about a record: its fingerprint then (null = deleted) and the
+ * cloud's "updated at". A row whose fingerprint differs has changed on this device.
+ */
+export interface SyncMeta {
+  tbl: string;
+  id: string;
+  hash: string | null;
+  at: string;
+}
+
+/** Which account this device syncs with, and how far it has read the cloud's changes. */
+export interface SyncState {
+  key: "state";
+  userId: string;
+  cursor: string | null;
+}
+
 /**
  * The browser database (IndexedDB via Dexie).
  * Index strings: first entry is the primary key; "&" = unique; "[a+b]" = compound index.
@@ -64,6 +89,8 @@ export class DinikDb extends Dexie {
   reportFiles!: Table<ReportFile, string>;
   labValues!: Table<LabValue, string>;
   settings!: Table<Settings, string>;
+  syncMeta!: Table<SyncMeta, [string, string]>;
+  syncState!: Table<SyncState, string>;
 
   constructor(name = DEFAULT_DB_NAME) {
     super(name);
@@ -186,6 +213,8 @@ export class DinikDb extends Dexie {
             s.firstRunDone ??= true;
           }),
       );
+    // Version 9 (2026-11-28): sync bookkeeping (new, empty tables).
+    this.version(9).stores(STORES_V9);
   }
 
   /** Every table, for "clear everything" operations. */

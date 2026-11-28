@@ -35,6 +35,8 @@ import { DinikDb } from "./db";
 
 export interface LocalStoreOptions {
   dbName?: string;
+  /** An already-open database (shared with sync). Otherwise one is opened by name. */
+  db?: DinikDb;
   /** Clock and id generator, replaceable in tests. */
   now?: () => string;
   newId?: () => string;
@@ -123,7 +125,7 @@ function inRange<T>(table: Table<T, string>, from: string, to: string) {
 export function createLocalDataStore(options: LocalStoreOptions = {}): DataStore {
   const now = options.now ?? (() => new Date().toISOString());
   const newId = options.newId ?? (() => crypto.randomUUID());
-  const db = new DinikDb(options.dbName);
+  const db = options.db ?? new DinikDb(options.dbName);
 
   const seed = () => buildSeed({ now: now(), newId, theme: options.getTheme?.() });
 
