@@ -38,6 +38,6 @@ test.describe("settings: account and sync", () => {
     const card = page.getByRole("region", { name: "Account and sync" });
     await card.getByLabel("Email").fill("someone@example.com");
     await card.getByRole("button", { name: "Send sign-in email" }).click();
-    await expect(card.getByRole("alert")).toContainText("Something went wrong");
+    await expect(card.getByRole("alert")).toContainText("Too many sign-in emails");
   });
 });

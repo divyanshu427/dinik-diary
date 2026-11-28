@@ -1782,6 +1782,8 @@ export const en = {
         confirmKeep: "Replace account data",
       },
       failed: (message: string) => `Something went wrong: ${message}`,
+      tooManyEmails:
+        "Too many sign-in emails. Wait about an hour, or use the link in the last email you got.",
     },
     more: {
       title: "More",

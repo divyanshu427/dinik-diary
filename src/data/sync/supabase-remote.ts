@@ -4,8 +4,19 @@ import type { PushRecord, RemoteRecord, SyncRemote } from "./remote";
 
 const COLUMNS = "tbl,id,data,updated_at,deleted,synced_at";
 
-function fail(error: { message: string } | null): asserts error is null {
-  if (error) throw new Error(error.message);
+/** Throws with the clearest reason Supabase gave (some refusals come without a message). */
+function fail(
+  error: { message?: string; code?: string; hint?: string | null } | null,
+  status?: number,
+): asserts error is null {
+  if (!error) return;
+  const reason =
+    error.message ||
+    error.hint ||
+    (status === 401 || status === 403
+      ? "the database refused access (run supabase/schema.sql again)"
+      : `the server answered ${status ?? "with an error"}`);
+  throw new Error(error.code ? `${reason} (${error.code})` : reason);
 }
 
 async function toDataUrl(blob: Blob): Promise<string> {
@@ -26,30 +37,32 @@ export function createSupabaseRemote(client: SupabaseClient, userId: string): Sy
     async pull(since, limit) {
       let query = client.from("records").select(COLUMNS).order("synced_at").limit(limit);
       if (since) query = query.gte("synced_at", since);
-      const { data, error } = await query;
-      fail(error);
+      const { data, error, status } = await query;
+      fail(error, status);
       return (data ?? []) as RemoteRecord[];
     },
 
     async push(records: PushRecord[]) {
-      const { data, error } = await client
+      const { data, error, status } = await client
         .from("records")
         .upsert(
           records.map((r) => ({ ...r, user_id: userId })),
           { onConflict: "user_id,tbl,id" },
         )
         .select(COLUMNS);
-      fail(error);
+      fail(error, status);
       return (data ?? []) as RemoteRecord[];
     },
 
     async countLive() {
-      const { count, error } = await client
+      // A normal read (not a "head" request), so a refusal comes back with its reason.
+      const { data, count, error, status } = await client
         .from("records")
-        .select("id", { count: "exact", head: true })
-        .eq("deleted", false);
-      fail(error);
-      return count ?? 0;
+        .select("id", { count: "exact" })
+        .eq("deleted", false)
+        .limit(1);
+      fail(error, status);
+      return count ?? data?.length ?? 0;
     },
 
     async putFile(id, dataUrl, mime) {

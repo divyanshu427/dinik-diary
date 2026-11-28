@@ -23,7 +23,12 @@ import { useDownloadBackup } from "./use-download-backup";
 
 const t = copy.pages.account;
 
-const errorText = (e: unknown) => t.failed(e instanceof Error ? e.message : String(e));
+function errorText(e: unknown) {
+  const message = e instanceof Error ? e.message : String(e);
+  // Free Supabase sends only a few sign-in emails an hour.
+  if (/rate limit/i.test(message)) return t.tooManyEmails;
+  return t.failed(message);
+}
 
 /** "just now", "5 minutes ago", or the time. Updates every 30 seconds. */
 function useAgo(iso: string | null) {
